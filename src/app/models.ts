@@ -103,19 +103,17 @@ export interface ApiGroup {
 export interface CreateGroupBody {
   name: string;
   color: string;
-  order: number;
 }
 
 export interface CreateTaskBody {
   name: string;
   color: string;
-  order: number;
   start: number;
   duration: number;
   group: number | null;
 }
 
-export type UpdateTaskBody = Partial<CreateTaskBody>;
+export type UpdateTaskBody = Partial<CreateTaskBody> & { order?: number };
 
 // ----- Toasts -------------------------------------------------------------
 

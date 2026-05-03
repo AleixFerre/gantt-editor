@@ -96,13 +96,11 @@ export class TaskService {
   }
 
   async addTask(task: Omit<Task, 'id'>): Promise<void> {
-    const order = this._tasks().filter((t) => t.groupId === task.groupId).length;
     const apiGroup = task.groupId ? parseGroupId(task.groupId) : null;
     try {
       const created = await this.api.createTask({
         name: task.name,
         color: task.color,
-        order,
         start: task.startDay,
         duration: task.duration,
         group: apiGroup,
@@ -115,12 +113,10 @@ export class TaskService {
   }
 
   async addGroup(group: Omit<Group, 'id' | 'collapsed'>): Promise<string | null> {
-    const order = this._groups().length;
     try {
       const created = await this.api.createGroup({
         name: group.name,
         color: group.color,
-        order,
       });
       const id = groupKey(created.id);
       this._groups.update((groups) => [
@@ -192,12 +188,16 @@ export class TaskService {
     );
   }
 
-  placeTaskRelativeTo(
+  async placeTaskRelativeTo(
     draggedId: string,
     targetId: string,
     position: 'above' | 'below',
-  ): void {
+  ): Promise<void> {
     if (draggedId === targetId) return;
+    const before = this._tasks().find((t) => t.id === draggedId);
+    if (!before) return;
+    const previousGroupId = before.groupId;
+    let nextGroupId: string | null = previousGroupId;
     this._tasks.update((tasks) => {
       const dragged = tasks.find((t) => t.id === draggedId);
       const target = tasks.find((t) => t.id === targetId);
@@ -207,10 +207,12 @@ export class TaskService {
       if (targetIdx === -1) return tasks;
       const insertAt = position === 'above' ? targetIdx : targetIdx + 1;
       const updated: Task = { ...dragged, groupId: target.groupId };
+      nextGroupId = target.groupId;
       const next = [...without];
       next.splice(insertAt, 0, updated);
       return next;
     });
+    await this.persistOrdersFor([previousGroupId, nextGroupId], draggedId);
   }
 
   placeGroupRelativeTo(
@@ -232,13 +234,14 @@ export class TaskService {
     });
   }
 
-  placeTaskInGroup(draggedId: string, groupId: string | null): void {
+  async placeTaskInGroup(draggedId: string, groupId: string | null): Promise<void> {
+    const before = this._tasks().find((t) => t.id === draggedId);
+    if (!before) return;
+    const previousGroupId = before.groupId;
+    if (groupId !== null && !this._groups().some((g) => g.id === groupId)) return;
     this._tasks.update((tasks) => {
       const dragged = tasks.find((t) => t.id === draggedId);
       if (!dragged) return tasks;
-      if (groupId !== null && !this._groups().some((g) => g.id === groupId)) {
-        return tasks;
-      }
       const without = tasks.filter((t) => t.id !== draggedId);
       const updated: Task = { ...dragged, groupId };
       const firstSibling = without.findIndex((t) => t.groupId === groupId);
@@ -250,6 +253,41 @@ export class TaskService {
       }
       return next;
     });
+    await this.persistOrdersFor([previousGroupId, groupId], draggedId);
+  }
+
+  private async persistOrdersFor(
+    groupIds: ReadonlyArray<string | null>,
+    draggedId: string,
+  ): Promise<void> {
+    const unique = Array.from(new Set(groupIds));
+    const draggedApiId = parseTaskId(draggedId);
+    const draggedTask = this._tasks().find((t) => t.id === draggedId);
+    try {
+      await Promise.all(
+        unique.flatMap((groupId) => {
+          const tasksInGroup = this._tasks().filter((t) => t.groupId === groupId);
+          return tasksInGroup.map((task, index) => {
+            const apiId = parseTaskId(task.id);
+            if (apiId === null) return Promise.resolve();
+            const isDragged = apiId === draggedApiId;
+            const newApiGroup =
+              isDragged && draggedTask
+                ? draggedTask.groupId
+                  ? parseGroupId(draggedTask.groupId)
+                  : null
+                : undefined;
+            return this.api.updateTask(apiId, {
+              order: index,
+              ...(newApiGroup !== undefined && { group: newApiGroup }),
+            });
+          });
+        }),
+      );
+      this.toast.success('Tasks reordered');
+    } catch (error) {
+      this.toast.error(`Could not reorder tasks: ${describe(error)}`);
+    }
   }
 
   updateTask(id: string, updates: Partial<Omit<Task, 'id'>>): void {
