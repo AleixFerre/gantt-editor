@@ -37,8 +37,12 @@
     <p class="gantt__empty">No tasks yet — add one above to get started.</p>
   } @else {
     <div
+      class="gantt__chart-wrap"
+      [style.--label-width.px]="labelWidth()"
+    >
+    <div
       class="gantt__chart"
-      [style.grid-template-columns]="'240px ' + chartWidth() + 'px'"
+      [style.grid-template-columns]="labelWidth() + 'px ' + chartWidth() + 'px'"
       [style.--day-width.px]="dayWidth"
     >
       <div class="gantt__corner">Task</div>
@@ -180,6 +184,15 @@
           }
         }
       }
+    </div>
+    <div
+      class="gantt__resize-handle"
+      [class.gantt__resize-handle--active]="resizing()"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize labels column"
+      (pointerdown)="onResizeStart($event)"
+    ></div>
     </div>
   }
 

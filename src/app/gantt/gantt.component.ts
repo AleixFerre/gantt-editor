@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { DAY_WIDTH_PX, GanttRow, Group, ROW_HEIGHT_PX, Task } from './gantt.component.model';
 import { TaskEdit } from './task-edit-dialog/task-edit-dialog.component.model';
 import { GroupEdit } from './group-edit-dialog/group-edit-dialog.component.model';
@@ -52,6 +52,65 @@ export class GanttComponent implements OnInit {
   protected readonly loadError = this.taskService.loadError;
   protected readonly isEmpty = computed(() => this.loaded() && this.groups().length === 0);
   protected readonly chartWidth = computed(() => this.totalDays() * this.dayWidth);
+
+  private readonly labelWidthStorageKey = 'gantt:labelWidth';
+  protected readonly labelWidth = signal(this.readStoredLabelWidth(240));
+  protected readonly resizing = signal(false);
+  private resizeStartX = 0;
+  private resizeStartWidth = 0;
+  private readonly resizeMove = (event: PointerEvent) => this.onResizeMove(event);
+  private readonly resizeEnd = () => this.onResizeEnd();
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => this.detachResize());
+    effect(() => {
+      const value = this.labelWidth();
+      try {
+        localStorage.setItem(this.labelWidthStorageKey, String(value));
+      } catch {
+        // ignore storage failures (private mode, quota)
+      }
+    });
+  }
+
+  private readStoredLabelWidth(fallback: number): number {
+    try {
+      const raw = localStorage.getItem(this.labelWidthStorageKey);
+      if (!raw) return fallback;
+      const parsed = Number(raw);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.max(140, Math.min(640, parsed));
+    } catch {
+      return fallback;
+    }
+  }
+
+  protected onResizeStart(event: PointerEvent): void {
+    event.preventDefault();
+    this.resizeStartX = event.clientX;
+    this.resizeStartWidth = this.labelWidth();
+    this.resizing.set(true);
+    window.addEventListener('pointermove', this.resizeMove);
+    window.addEventListener('pointerup', this.resizeEnd);
+    window.addEventListener('pointercancel', this.resizeEnd);
+  }
+
+  private onResizeMove(event: PointerEvent): void {
+    const delta = event.clientX - this.resizeStartX;
+    const next = Math.max(140, Math.min(640, this.resizeStartWidth + delta));
+    this.labelWidth.set(next);
+  }
+
+  private onResizeEnd(): void {
+    this.detachResize();
+    this.resizing.set(false);
+  }
+
+  private detachResize(): void {
+    window.removeEventListener('pointermove', this.resizeMove);
+    window.removeEventListener('pointerup', this.resizeEnd);
+    window.removeEventListener('pointercancel', this.resizeEnd);
+  }
 
   ngOnInit(): void {
     void this.taskService.load();
