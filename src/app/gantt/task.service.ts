@@ -1,9 +1,11 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { GanttApiService, type ApiGroup } from './gantt-api.service';
 import { GanttRow, Group, GroupSpan, Task } from './task.model';
 
 const MIN_VISIBLE_DAYS = 30;
 const TRAILING_PADDING_DAYS = 5;
 const EXPORT_VERSION = 1;
+const DEFAULT_TASK_DURATION = 1;
 
 export interface GanttExport {
   version: number;
@@ -11,22 +13,26 @@ export interface GanttExport {
   tasks: Task[];
 }
 
+const groupKey = (id: number) => `g-${id}`;
+const taskKey = (id: number) => `t-${id}`;
+const parseGroupId = (key: string): number | null => {
+  const match = /^g-(\d+)$/.exec(key);
+  return match ? Number(match[1]) : null;
+};
+
 @Injectable({ providedIn: 'root' })
 export class TaskService {
-  private readonly _groups = signal<Group[]>([
-    { id: 'g-discovery', name: 'Discovery', color: '#6366f1', collapsed: false },
-    { id: 'g-build', name: 'Build', color: '#0d9488', collapsed: false },
-  ]);
+  private readonly api = inject(GanttApiService);
 
-  private readonly _tasks = signal<Task[]>([
-    { id: 't-1', name: 'Research', startDay: 0, duration: 4, color: '#4f46e5', groupId: 'g-discovery' },
-    { id: 't-2', name: 'Design', startDay: 3, duration: 6, color: '#0891b2', groupId: 'g-discovery' },
-    { id: 't-3', name: 'Implementation', startDay: 8, duration: 10, color: '#16a34a', groupId: 'g-build' },
-    { id: 't-4', name: 'QA & Launch', startDay: 17, duration: 5, color: '#ea580c', groupId: 'g-build' },
-  ]);
+  private readonly _groups = signal<Group[]>([]);
+  private readonly _tasks = signal<Task[]>([]);
+  private readonly _loaded = signal(false);
+  private readonly _loadError = signal<string | null>(null);
 
   readonly tasks = this._tasks.asReadonly();
   readonly groups = this._groups.asReadonly();
+  readonly loaded = this._loaded.asReadonly();
+  readonly loadError = this._loadError.asReadonly();
 
   readonly totalDays = computed(() => {
     const lastDay = this._tasks().reduce(
@@ -63,9 +69,49 @@ export class TaskService {
     return rows;
   });
 
-  addTask(task: Omit<Task, 'id'>): void {
-    const id = `t-${crypto.randomUUID()}`;
-    this._tasks.update((tasks) => [...tasks, { ...task, id }]);
+  async load(): Promise<void> {
+    try {
+      const data = await this.api.listGroups();
+      const { groups, tasks } = mapApiGroups(data);
+      this._groups.set(groups);
+      this._tasks.set(tasks);
+      this._loadError.set(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load.';
+      this._loadError.set(message);
+      this._groups.set([]);
+      this._tasks.set([]);
+    } finally {
+      this._loaded.set(true);
+    }
+  }
+
+  async addTask(task: Omit<Task, 'id'>): Promise<void> {
+    const order = this._tasks().filter((t) => t.groupId === task.groupId).length;
+    const apiGroup = task.groupId ? parseGroupId(task.groupId) : null;
+    const created = await this.api.createTask({
+      name: task.name,
+      color: task.color,
+      order,
+      group: apiGroup,
+    });
+    const newTask: Task = {
+      ...task,
+      id: taskKey(created.id),
+    };
+    this._tasks.update((tasks) => [...tasks, newTask]);
+  }
+
+  async addGroup(group: Omit<Group, 'id' | 'collapsed'>): Promise<string> {
+    const order = this._groups().length;
+    const created = await this.api.createGroup({
+      name: group.name,
+      color: group.color,
+      order,
+    });
+    const id = groupKey(created.id);
+    this._groups.update((groups) => [...groups, { ...group, id, collapsed: false }]);
+    return id;
   }
 
   removeTask(id: string): void {
@@ -163,12 +209,6 @@ export class TaskService {
     );
   }
 
-  addGroup(group: Omit<Group, 'id' | 'collapsed'>): string {
-    const id = `g-${crypto.randomUUID()}`;
-    this._groups.update((groups) => [...groups, { ...group, id, collapsed: false }]);
-    return id;
-  }
-
   removeGroup(id: string): void {
     this._groups.update((groups) => groups.filter((group) => group.id !== id));
     this._tasks.update((tasks) =>
@@ -213,6 +253,31 @@ export class TaskService {
       ),
     );
   }
+}
+
+function mapApiGroups(apiGroups: ApiGroup[]): { groups: Group[]; tasks: Task[] } {
+  const sortedGroups = [...apiGroups].sort((a, b) => a.order - b.order);
+  const groups: Group[] = sortedGroups.map((g) => ({
+    id: groupKey(g.id),
+    name: g.name,
+    color: g.color,
+    collapsed: false,
+  }));
+  const tasks: Task[] = [];
+  for (const g of sortedGroups) {
+    const sortedTasks = [...g.tasks].sort((a, b) => a.order - b.order);
+    for (const t of sortedTasks) {
+      tasks.push({
+        id: taskKey(t.id),
+        name: t.name,
+        color: t.color,
+        startDay: 0,
+        duration: DEFAULT_TASK_DURATION,
+        groupId: groupKey(g.id),
+      });
+    }
+  }
+  return { groups, tasks };
 }
 
 function parseExport(data: unknown): { groups: Group[]; tasks: Task[] } {

@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { GanttEmptyComponent } from './gantt-empty/gantt-empty';
 import { GroupBarComponent } from './group-bar/group-bar';
 import { GroupFormComponent } from './group-form/group-form';
 import { TaskBarComponent } from './task-bar/task-bar';
@@ -35,12 +36,13 @@ type DropTarget =
     TaskBarComponent,
     GroupBarComponent,
     TaskEditDialogComponent,
+    GanttEmptyComponent,
   ],
   templateUrl: './gantt.html',
   styleUrl: './gantt.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GanttComponent {
+export class GanttComponent implements OnInit {
   private readonly taskService = inject(TaskService);
 
   protected readonly dayWidth = DAY_WIDTH_PX;
@@ -48,7 +50,16 @@ export class GanttComponent {
   protected readonly rows = this.taskService.rows;
   protected readonly groups = this.taskService.groups;
   protected readonly totalDays = this.taskService.totalDays;
+  protected readonly loaded = this.taskService.loaded;
+  protected readonly loadError = this.taskService.loadError;
+  protected readonly isEmpty = computed(
+    () => this.loaded() && this.groups().length === 0,
+  );
   protected readonly chartWidth = computed(() => this.totalDays() * this.dayWidth);
+
+  ngOnInit(): void {
+    void this.taskService.load();
+  }
   protected readonly editingTaskId = signal<string | null>(null);
   protected readonly editingTask = computed<Task | null>(() => {
     const id = this.editingTaskId();

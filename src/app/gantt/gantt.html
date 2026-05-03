@@ -1,3 +1,10 @@
+@if (!loaded()) {
+  <p class="gantt__empty">Loading…</p>
+} @else if (loadError(); as error) {
+  <p class="gantt__empty">Could not load data: {{ error }}</p>
+} @else if (isEmpty()) {
+  <app-gantt-empty />
+} @else {
 <section class="gantt">
   <header class="gantt__header">
     <h1 class="gantt__title">Gantt Editor</h1>
@@ -171,3 +178,4 @@
     (cancelled)="cancelEditTask()"
   />
 </section>
+}
