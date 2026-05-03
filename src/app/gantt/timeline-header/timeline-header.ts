@@ -20,9 +20,6 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
   styles: `
     :host {
       display: block;
-      position: sticky;
-      top: 0;
-      z-index: 2;
     }
     .timeline-header {
       display: flex;

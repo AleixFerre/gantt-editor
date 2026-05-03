@@ -1,5 +1,6 @@
 :host {
   display: block;
+  height: 100vh;
   font-family:
     system-ui,
     -apple-system,
@@ -9,15 +10,16 @@
 }
 
 .gantt {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 32px 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  height: 100%;
+  padding: 16px;
+  gap: 12px;
+  box-sizing: border-box;
 }
 
 .gantt__header {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -25,23 +27,25 @@
 
 .gantt__title {
   margin: 0;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
 }
 
 .gantt__subtitle {
   margin: 0;
   color: #6b7280;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .gantt__controls {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
 .gantt__empty {
+  flex: 1 1 0;
   margin: 0;
   padding: 32px;
   text-align: center;
@@ -49,42 +53,60 @@
   background: #f9fafb;
   border: 1px dashed #d1d5db;
   border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .gantt__chart {
-  display: flex;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  grid-auto-rows: min-content;
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  overflow: hidden;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.gantt__labels {
-  flex: 0 0 240px;
-  background: #f9fafb;
-  border-right: 1px solid #d1d5db;
-  display: flex;
-  flex-direction: column;
-}
-
-.gantt__label {
+.gantt__corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  height: 32px;
   display: flex;
   align-items: center;
-  gap: 8px;
   padding: 0 12px;
-  border-bottom: 1px solid #e5e7eb;
-  min-width: 0;
-}
-
-.gantt__label--header {
-  height: 32px;
+  background: #f3f4f6;
+  border-right: 1px solid #d1d5db;
+  border-bottom: 1px solid #d1d5db;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #374151;
-  background: #f3f4f6;
+}
+
+.gantt__top {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.gantt__label {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  background: #f9fafb;
+  border-right: 1px solid #d1d5db;
+  border-bottom: 1px solid #e5e7eb;
+  min-width: 0;
 }
 
 .gantt__label--group {
@@ -110,6 +132,7 @@
   color: #4b5563;
   border-radius: 4px;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .gantt__chevron:hover {
@@ -150,6 +173,7 @@
   padding: 2px 6px;
   border-radius: 999px;
   font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
 .gantt__remove {
@@ -161,6 +185,7 @@
   cursor: pointer;
   padding: 4px 6px;
   border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .gantt__remove:hover {
@@ -171,17 +196,6 @@
 .gantt__remove:focus-visible {
   outline: 2px solid #4f46e5;
   outline-offset: 1px;
-}
-
-.gantt__timeline {
-  flex: 1;
-  overflow-x: auto;
-  overflow-y: hidden;
-  position: relative;
-}
-
-.gantt__rows {
-  position: relative;
 }
 
 .gantt__row {
