@@ -67,8 +67,8 @@ export class GanttComponent implements OnInit {
     this.taskService.updateDuration(id, duration);
   }
 
-  protected onTaskCommit(id: string): void {
-    void this.taskService.persistTaskBounds(id);
+  protected onTaskCommit(id: string, change: 'move' | 'resize'): void {
+    void this.taskService.persistTaskBounds(id, change);
   }
 
   protected onGroupCommit(id: string): void {

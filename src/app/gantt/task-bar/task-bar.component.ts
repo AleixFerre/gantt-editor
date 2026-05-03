@@ -8,7 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { Task } from '../task.model';
+import { Task } from '../../models';
 
 type DragMode = 'move' | 'resize';
 
@@ -36,7 +36,7 @@ export class TaskBarComponent {
 
   readonly moved = output<number>();
   readonly resized = output<number>();
-  readonly committed = output<void>();
+  readonly committed = output<'move' | 'resize'>();
 
   protected readonly mode = signal<DragMode | null>(null);
   protected readonly leftPx = computed(() => this.task().startDay * this.dayWidth());
@@ -74,20 +74,20 @@ export class TaskBarComponent {
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
       this.moved.emit(Math.max(0, this.task().startDay - 1));
-      this.committed.emit();
+      this.committed.emit('move');
     } else if (event.key === 'ArrowRight') {
       event.preventDefault();
       const cap = Math.max(0, this.maxDays() - this.task().duration);
       this.moved.emit(Math.min(cap, this.task().startDay + 1));
-      this.committed.emit();
+      this.committed.emit('move');
     } else if (event.key === '+' || event.key === '=') {
       event.preventDefault();
       this.resized.emit(this.task().duration + 1);
-      this.committed.emit();
+      this.committed.emit('resize');
     } else if (event.key === '-' || event.key === '_') {
       event.preventDefault();
       this.resized.emit(Math.max(1, this.task().duration - 1));
-      this.committed.emit();
+      this.committed.emit('resize');
     }
   }
 
@@ -120,9 +120,9 @@ export class TaskBarComponent {
 
   private endDrag(): void {
     this.detachWindow();
-    const wasDragging = this.mode() !== null;
+    const dragMode = this.mode();
     this.mode.set(null);
-    if (wasDragging) this.committed.emit();
+    if (dragMode) this.committed.emit(dragMode);
   }
 
   private detachWindow(): void {

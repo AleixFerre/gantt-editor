@@ -10,10 +10,15 @@ import {
   Task,
   TRAILING_PADDING_DAYS,
 } from '../models';
+import { ToastService } from '../shared/toast.service';
 import { GanttApiService } from './gantt-api.service';
+
+export type TaskBoundsChange = 'move' | 'resize';
 
 const groupKey = (id: number) => `g-${id}`;
 const taskKey = (id: number) => `t-${id}`;
+const describe = (error: unknown): string =>
+  error instanceof Error ? error.message : 'unknown error';
 const parseGroupId = (key: string): number | null => {
   const match = /^g-(\d+)$/.exec(key);
   return match ? Number(match[1]) : null;
@@ -26,6 +31,7 @@ const parseTaskId = (key: string): number | null => {
 @Injectable({ providedIn: 'root' })
 export class TaskService {
   private readonly api = inject(GanttApiService);
+  private readonly toast = inject(ToastService);
 
   private readonly _groups = signal<Group[]>([]);
   private readonly _tasks = signal<Task[]>([]);
@@ -92,53 +98,78 @@ export class TaskService {
   async addTask(task: Omit<Task, 'id'>): Promise<void> {
     const order = this._tasks().filter((t) => t.groupId === task.groupId).length;
     const apiGroup = task.groupId ? parseGroupId(task.groupId) : null;
-    const created = await this.api.createTask({
-      name: task.name,
-      color: task.color,
-      order,
-      start: task.startDay,
-      duration: task.duration,
-      group: apiGroup,
-    });
-    const newTask: Task = {
-      ...task,
-      id: taskKey(created.id),
-    };
-    this._tasks.update((tasks) => [...tasks, newTask]);
+    try {
+      const created = await this.api.createTask({
+        name: task.name,
+        color: task.color,
+        order,
+        start: task.startDay,
+        duration: task.duration,
+        group: apiGroup,
+      });
+      this._tasks.update((tasks) => [...tasks, { ...task, id: taskKey(created.id) }]);
+      this.toast.success(`Task “${task.name}” created`);
+    } catch (error) {
+      this.toast.error(`Could not create task: ${describe(error)}`);
+    }
   }
 
-  async addGroup(group: Omit<Group, 'id' | 'collapsed'>): Promise<string> {
+  async addGroup(group: Omit<Group, 'id' | 'collapsed'>): Promise<string | null> {
     const order = this._groups().length;
-    const created = await this.api.createGroup({
-      name: group.name,
-      color: group.color,
-      order,
-    });
-    const id = groupKey(created.id);
-    this._groups.update((groups) => [...groups, { ...group, id, collapsed: false }]);
-    return id;
+    try {
+      const created = await this.api.createGroup({
+        name: group.name,
+        color: group.color,
+        order,
+      });
+      const id = groupKey(created.id);
+      this._groups.update((groups) => [
+        ...groups,
+        { ...group, id, collapsed: false },
+      ]);
+      this.toast.success(`Group “${group.name}” created`);
+      return id;
+    } catch (error) {
+      this.toast.error(`Could not create group: ${describe(error)}`);
+      return null;
+    }
   }
 
-  async persistTaskBounds(id: string): Promise<void> {
+  async persistTaskBounds(id: string, change: TaskBoundsChange): Promise<void> {
     const apiId = parseTaskId(id);
     if (apiId === null) return;
     const task = this._tasks().find((t) => t.id === id);
     if (!task) return;
-    await this.api.updateTask(apiId, {
-      start: task.startDay,
-      duration: task.duration,
-    });
+    try {
+      await this.api.updateTask(apiId, {
+        start: task.startDay,
+        duration: task.duration,
+      });
+      const verb = change === 'resize' ? 'resized' : 'rescheduled';
+      this.toast.success(`Task “${task.name}” ${verb}`);
+    } catch (error) {
+      const verb = change === 'resize' ? 'resize' : 'reschedule';
+      this.toast.error(`Could not ${verb} task: ${describe(error)}`);
+    }
   }
 
   async persistGroupTaskBounds(groupId: string): Promise<void> {
+    const group = this._groups().find((g) => g.id === groupId);
     const tasks = this._tasks().filter((t) => t.groupId === groupId);
-    await Promise.all(
-      tasks.map((task) => {
-        const apiId = parseTaskId(task.id);
-        if (apiId === null) return Promise.resolve();
-        return this.api.updateTask(apiId, { start: task.startDay });
-      }),
-    );
+    try {
+      await Promise.all(
+        tasks.map((task) => {
+          const apiId = parseTaskId(task.id);
+          if (apiId === null) return Promise.resolve();
+          return this.api.updateTask(apiId, { start: task.startDay });
+        }),
+      );
+      this.toast.success(
+        group ? `Group “${group.name}” rescheduled` : 'Group rescheduled',
+      );
+    } catch (error) {
+      this.toast.error(`Could not reschedule group: ${describe(error)}`);
+    }
   }
 
   removeTask(id: string): void {

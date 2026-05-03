@@ -9,15 +9,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Group, Task } from '../task.model';
-
-export interface TaskEdit {
-  name: string;
-  groupId: string | null;
-  startDay: number;
-  duration: number;
-  color: string;
-}
+import { Group, Task, TaskEdit } from '../../models';
 
 @Component({
   selector: 'app-task-edit-dialog',

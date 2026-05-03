@@ -164,7 +164,7 @@
                 [maxDays]="totalDays()"
                 (moved)="onTaskMove(row.task.id, $event)"
                 (resized)="onTaskResize(row.task.id, $event)"
-                (committed)="onTaskCommit(row.task.id)"
+                (committed)="onTaskCommit(row.task.id, $event)"
               />
             </div>
           }
