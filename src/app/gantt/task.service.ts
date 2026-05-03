@@ -109,6 +109,25 @@ export class TaskService {
     });
   }
 
+  placeGroupRelativeTo(
+    draggedId: string,
+    targetId: string,
+    position: 'above' | 'below',
+  ): void {
+    if (draggedId === targetId) return;
+    this._groups.update((groups) => {
+      const dragged = groups.find((g) => g.id === draggedId);
+      if (!dragged) return groups;
+      const without = groups.filter((g) => g.id !== draggedId);
+      const targetIdx = without.findIndex((g) => g.id === targetId);
+      if (targetIdx === -1) return groups;
+      const insertAt = position === 'above' ? targetIdx : targetIdx + 1;
+      const next = [...without];
+      next.splice(insertAt, 0, dragged);
+      return next;
+    });
+  }
+
   placeTaskInGroup(draggedId: string, groupId: string | null): void {
     this._tasks.update((tasks) => {
       const dragged = tasks.find((t) => t.id === draggedId);

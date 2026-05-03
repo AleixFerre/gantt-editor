@@ -44,11 +44,24 @@
           @case ('group') {
             <div
               class="gantt__label gantt__label--group"
-              [class.gantt__label--drop-into]="isGroupDropTarget(row.group.id)"
+              [class.gantt__label--dragging]="isGroupDragging(row.group.id)"
+              [class.gantt__label--drop-into]="isGroupDropInto(row.group.id)"
+              [class.gantt__label--drop-above]="isGroupDropAbove(row.group.id)"
+              [class.gantt__label--drop-below]="isGroupDropBelow(row.group.id)"
               [style.height.px]="rowHeight"
+              draggable="true"
+              (dragstart)="onGroupDragStart($event, row.group.id)"
+              (dragend)="onDragEnd()"
               (dragover)="onGroupDragOver($event, row.group.id)"
               (drop)="onGroupDrop($event, row.group.id)"
             >
+              <span
+                class="gantt__drag-handle"
+                aria-hidden="true"
+                title="Drag to reorder"
+              >
+                ⋮⋮
+              </span>
               <button
                 type="button"
                 class="gantt__chevron"
@@ -98,13 +111,13 @@
             <div
               class="gantt__label"
               [class.gantt__label--child]="row.inGroup"
-              [class.gantt__label--dragging]="draggingTaskId() === row.task.id"
+              [class.gantt__label--dragging]="isTaskDragging(row.task.id)"
               [class.gantt__label--drop-above]="isTaskDropAbove(row.task.id)"
               [class.gantt__label--drop-below]="isTaskDropBelow(row.task.id)"
               [style.height.px]="rowHeight"
               draggable="true"
               (dragstart)="onTaskDragStart($event, row.task.id)"
-              (dragend)="onTaskDragEnd()"
+              (dragend)="onDragEnd()"
               (dragover)="onTaskDragOver($event, row.task.id)"
               (drop)="onTaskDrop($event, row.task.id)"
             >

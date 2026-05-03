@@ -14,9 +14,17 @@ import { TimelineHeaderComponent } from './timeline-header/timeline-header';
 const DAY_WIDTH_PX = 40;
 const ROW_HEIGHT_PX = 44;
 
+type DragSource =
+  | { readonly kind: 'task'; readonly id: string }
+  | { readonly kind: 'group'; readonly id: string };
+
 type DropTarget =
   | { readonly kind: 'task'; readonly id: string; readonly position: 'above' | 'below' }
-  | { readonly kind: 'group'; readonly id: string };
+  | {
+      readonly kind: 'group';
+      readonly id: string;
+      readonly mode: 'into' | 'above' | 'below';
+    };
 
 @Component({
   selector: 'app-gantt',
@@ -60,24 +68,31 @@ export class GanttComponent {
     this.taskService.removeTask(id);
   }
 
-  protected readonly draggingTaskId = signal<string | null>(null);
+  protected readonly dragging = signal<DragSource | null>(null);
   protected readonly dropTarget = signal<DropTarget | null>(null);
 
   protected onTaskDragStart(event: DragEvent, id: string): void {
     if (!event.dataTransfer) return;
     event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', id);
-    this.draggingTaskId.set(id);
+    event.dataTransfer.setData('text/plain', `task:${id}`);
+    this.dragging.set({ kind: 'task', id });
   }
 
-  protected onTaskDragEnd(): void {
-    this.draggingTaskId.set(null);
+  protected onGroupDragStart(event: DragEvent, id: string): void {
+    if (!event.dataTransfer) return;
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', `group:${id}`);
+    this.dragging.set({ kind: 'group', id });
+  }
+
+  protected onDragEnd(): void {
+    this.dragging.set(null);
     this.dropTarget.set(null);
   }
 
   protected onTaskDragOver(event: DragEvent, id: string): void {
-    const draggingId = this.draggingTaskId();
-    if (!draggingId || draggingId === id) return;
+    const drag = this.dragging();
+    if (!drag || drag.kind !== 'task' || drag.id === id) return;
     event.preventDefault();
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
     const row = event.currentTarget as HTMLElement;
@@ -96,41 +111,54 @@ export class GanttComponent {
   }
 
   protected onTaskDrop(event: DragEvent, id: string): void {
-    const draggingId = this.draggingTaskId();
-    if (!draggingId || draggingId === id) return;
+    const drag = this.dragging();
+    if (!drag || drag.kind !== 'task' || drag.id === id) return;
     event.preventDefault();
     const target = this.dropTarget();
     const position =
       target && target.kind === 'task' && target.id === id ? target.position : 'above';
-    this.taskService.placeTaskRelativeTo(draggingId, id, position);
-    this.draggingTaskId.set(null);
-    this.dropTarget.set(null);
+    this.taskService.placeTaskRelativeTo(drag.id, id, position);
+    this.onDragEnd();
   }
 
   protected onGroupDragOver(event: DragEvent, groupId: string): void {
-    if (!this.draggingTaskId()) return;
+    const drag = this.dragging();
+    if (!drag) return;
+    if (drag.kind === 'group' && drag.id === groupId) return;
     event.preventDefault();
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    let mode: 'into' | 'above' | 'below' = 'into';
+    if (drag.kind === 'group') {
+      const row = event.currentTarget as HTMLElement;
+      const rect = row.getBoundingClientRect();
+      mode = event.clientY < rect.top + rect.height / 2 ? 'above' : 'below';
+    }
     const current = this.dropTarget();
-    if (!current || current.kind !== 'group' || current.id !== groupId) {
-      this.dropTarget.set({ kind: 'group', id: groupId });
+    if (
+      !current ||
+      current.kind !== 'group' ||
+      current.id !== groupId ||
+      current.mode !== mode
+    ) {
+      this.dropTarget.set({ kind: 'group', id: groupId, mode });
     }
   }
 
   protected onGroupDrop(event: DragEvent, groupId: string): void {
-    const draggingId = this.draggingTaskId();
-    if (!draggingId) return;
+    const drag = this.dragging();
+    if (!drag) return;
     event.preventDefault();
-    this.taskService.placeTaskInGroup(draggingId, groupId);
-    this.draggingTaskId.set(null);
-    this.dropTarget.set(null);
-  }
-
-  protected onDragLeaveContainer(event: DragEvent): void {
-    const related = event.relatedTarget as Node | null;
-    const container = event.currentTarget as Node;
-    if (related && container.contains(related)) return;
-    this.dropTarget.set(null);
+    if (drag.kind === 'task') {
+      this.taskService.placeTaskInGroup(drag.id, groupId);
+    } else if (drag.id !== groupId) {
+      const target = this.dropTarget();
+      const position: 'above' | 'below' =
+        target && target.kind === 'group' && target.id === groupId && target.mode !== 'into'
+          ? target.mode
+          : 'above';
+      this.taskService.placeGroupRelativeTo(drag.id, groupId, position);
+    }
+    this.onDragEnd();
   }
 
   protected isTaskDropAbove(id: string): boolean {
@@ -147,9 +175,35 @@ export class GanttComponent {
     );
   }
 
-  protected isGroupDropTarget(groupId: string): boolean {
+  protected isGroupDropInto(groupId: string): boolean {
     const target = this.dropTarget();
-    return !!target && target.kind === 'group' && target.id === groupId;
+    return (
+      !!target && target.kind === 'group' && target.id === groupId && target.mode === 'into'
+    );
+  }
+
+  protected isGroupDropAbove(groupId: string): boolean {
+    const target = this.dropTarget();
+    return (
+      !!target && target.kind === 'group' && target.id === groupId && target.mode === 'above'
+    );
+  }
+
+  protected isGroupDropBelow(groupId: string): boolean {
+    const target = this.dropTarget();
+    return (
+      !!target && target.kind === 'group' && target.id === groupId && target.mode === 'below'
+    );
+  }
+
+  protected isTaskDragging(id: string): boolean {
+    const drag = this.dragging();
+    return !!drag && drag.kind === 'task' && drag.id === id;
+  }
+
+  protected isGroupDragging(id: string): boolean {
+    const drag = this.dragging();
+    return !!drag && drag.kind === 'group' && drag.id === id;
   }
 
   protected onGroupMove(id: string, startDay: number): void {
