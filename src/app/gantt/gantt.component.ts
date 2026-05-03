@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { DAY_WIDTH_PX, GanttRow, Group, ROW_HEIGHT_PX, Task } from './gantt.component.model';
 import { TaskEdit } from './task-edit-dialog/task-edit-dialog.component.model';
 import { GroupEdit } from './group-edit-dialog/group-edit-dialog.component.model';
@@ -112,9 +113,23 @@ export class GanttComponent implements OnInit {
     window.removeEventListener('pointercancel', this.resizeEnd);
   }
 
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+
   ngOnInit(): void {
-    void this.taskService.load();
+    const raw = this.route.snapshot.paramMap.get('id');
+    const boardId = raw ? Number(raw) : NaN;
+    if (!Number.isFinite(boardId)) {
+      void this.router.navigate(['/app']);
+      return;
+    }
+    void this.taskService.load(boardId);
   }
+
+  protected goToBoards(): void {
+    void this.router.navigate(['/app']);
+  }
+
   protected readonly editingTaskId = signal<string | null>(null);
   protected readonly editingTask = computed<Task | null>(() => {
     const id = this.editingTaskId();

@@ -34,6 +34,7 @@ export class TaskService {
   private readonly _tasks = signal<Task[]>([]);
   private readonly _loaded = signal(false);
   private readonly _loadError = signal<string | null>(null);
+  private boardId: number | null = null;
 
   readonly tasks = this._tasks.asReadonly();
   readonly groups = this._groups.asReadonly();
@@ -75,9 +76,11 @@ export class TaskService {
     return rows;
   });
 
-  async load(): Promise<void> {
+  async load(boardId: number): Promise<void> {
+    this.boardId = boardId;
+    this._loaded.set(false);
     try {
-      const data = await this.api.listGroups();
+      const data = await this.api.listGroups(boardId);
       const { groups, tasks } = mapApiGroups(data);
       this._groups.set(groups);
       this._tasks.set(tasks);
@@ -110,10 +113,15 @@ export class TaskService {
   }
 
   async addGroup(group: Omit<Group, 'id' | 'collapsed'>): Promise<string | null> {
+    if (this.boardId === null) {
+      this.toast.error('No board selected');
+      return null;
+    }
     try {
       const created = await this.api.createGroup({
         name: group.name,
         color: group.color,
+        board: this.boardId,
       });
       const id = groupKey(created.id);
       this._groups.update((groups) => [

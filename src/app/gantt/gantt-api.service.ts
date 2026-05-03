@@ -1,8 +1,9 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
+  ApiBoard,
   ApiGroup,
   ApiTask,
   CreateGroupBody,
@@ -16,8 +17,15 @@ export class GanttApiService {
   private readonly http = inject(HttpClient);
   private readonly base = environment.apiBaseUrl;
 
-  listGroups(): Promise<ApiGroup[]> {
-    return firstValueFrom(this.http.get<ApiGroup[]>(`${this.base}/groups`));
+  listBoards(): Promise<ApiBoard[]> {
+    return firstValueFrom(this.http.get<ApiBoard[]>(`${this.base}/boards`));
+  }
+
+  listGroups(boardId: number): Promise<ApiGroup[]> {
+    const params = new HttpParams().set('board', String(boardId));
+    return firstValueFrom(
+      this.http.get<ApiGroup[]>(`${this.base}/groups`, { params }),
+    );
   }
 
   createGroup(body: CreateGroupBody): Promise<ApiGroup> {

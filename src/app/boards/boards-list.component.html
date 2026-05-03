@@ -1,0 +1,25 @@
+<section class="boards">
+  <header class="boards__header">
+    <h1 class="boards__title">Your boards</h1>
+    <p class="boards__subtitle">Pick a board to open its Gantt.</p>
+  </header>
+
+  @if (!loaded()) {
+    <p class="boards__status" role="status">Loading…</p>
+  } @else if (error(); as err) {
+    <p class="boards__status boards__status--error" role="alert">{{ err }}</p>
+  } @else if (boards().length === 0) {
+    <p class="boards__status">No boards yet.</p>
+  } @else {
+    <ul class="boards__list">
+      @for (board of boards(); track board.id) {
+        <li class="boards__item">
+          <button type="button" class="boards__card" (click)="open(board)">
+            <span class="boards__card-name">{{ board.name }}</span>
+            <span class="boards__card-id">#{{ board.id }}</span>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</section>

@@ -16,9 +16,15 @@ export interface ApiGroup {
   tasks: ApiTask[];
 }
 
+export interface ApiBoard {
+  id: number;
+  name: string;
+}
+
 export interface CreateGroupBody {
   name: string;
   color: string;
+  board: number;
 }
 
 export type UpdateGroupBody = Partial<{

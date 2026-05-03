@@ -8,6 +8,11 @@ export const routes: Routes = [
   {
     path: 'app',
     pathMatch: 'full',
+    loadComponent: () =>
+      import('./boards/boards-list.component').then((m) => m.BoardsListComponent),
+  },
+  {
+    path: 'app/board/:id',
     loadComponent: () => import('./gantt/gantt.component').then((m) => m.GanttComponent),
   },
   {
