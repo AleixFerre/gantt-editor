@@ -1,14 +1,19 @@
 <section class="boards">
   <header class="boards__header">
-    <h1 class="boards__title">Your boards</h1>
-    <p class="boards__subtitle">Pick a board to open its Gantt.</p>
+    <div class="boards__header-text">
+      <h1 class="boards__title">Your boards</h1>
+      <p class="boards__subtitle">Pick a board to open its Gantt.</p>
+    </div>
+    <button type="button" class="boards__new-btn" (click)="openCreate()">
+      + New board
+    </button>
   </header>
 
   @if (!loaded()) {
     <p class="boards__status" role="status">Loading…</p>
   } @else if (error(); as err) {
     <p class="boards__status boards__status--error" role="alert">{{ err }}</p>
-  } @else if (boards().length === 0) {
+  } @else if (boards().length === 0 && pendingNames().length === 0) {
     <p class="boards__status">No boards yet.</p>
   } @else {
     <ul class="boards__list">
@@ -20,6 +25,40 @@
           </button>
         </li>
       }
+      @for (name of pendingNames(); track $index) {
+        <li class="boards__item">
+          <div class="boards__card boards__card--pending" aria-busy="true">
+            <span class="boards__card-name">{{ name }}</span>
+            <span class="boards__card-shimmer" aria-hidden="true"></span>
+          </div>
+        </li>
+      }
     </ul>
   }
+
+  <dialog #dialog class="boards__dialog" (close)="cancelCreate()">
+    <form [formGroup]="form" (ngSubmit)="submitCreate()" class="boards__dialog-form" novalidate>
+      <h2 class="boards__dialog-title">New board</h2>
+
+      <label class="boards__dialog-field">
+        <span class="boards__dialog-label">Name</span>
+        <input type="text" formControlName="name" autocomplete="off" autofocus />
+      </label>
+
+      @if (creatingError(); as err) {
+        <p class="boards__dialog-error" role="alert">{{ err }}</p>
+      }
+
+      <div class="boards__dialog-actions">
+        <button type="button" class="boards__dialog-btn" (click)="cancelCreate()">Cancel</button>
+        <button
+          type="submit"
+          class="boards__dialog-btn boards__dialog-btn--primary"
+          [disabled]="form.invalid"
+        >
+          Create
+        </button>
+      </div>
+    </form>
+  </dialog>
 </section>
