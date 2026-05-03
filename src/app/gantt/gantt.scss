@@ -1,0 +1,201 @@
+:host {
+  display: block;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  color: #111827;
+}
+
+.gantt {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.gantt__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gantt__title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.gantt__subtitle {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.gantt__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gantt__empty {
+  margin: 0;
+  padding: 32px;
+  text-align: center;
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+}
+
+.gantt__chart {
+  display: flex;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.gantt__labels {
+  flex: 0 0 240px;
+  background: #f9fafb;
+  border-right: 1px solid #d1d5db;
+  display: flex;
+  flex-direction: column;
+}
+
+.gantt__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-bottom: 1px solid #e5e7eb;
+  min-width: 0;
+}
+
+.gantt__label--header {
+  height: 32px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.gantt__label--group {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.gantt__label--child {
+  padding-left: 28px;
+}
+
+.gantt__chevron {
+  background: none;
+  border: none;
+  font-size: 12px;
+  line-height: 1;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #4b5563;
+  border-radius: 4px;
+  padding: 0;
+}
+
+.gantt__chevron:hover {
+  background: #e5e7eb;
+}
+
+.gantt__chevron:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 1px;
+}
+
+.gantt__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.gantt__swatch--group {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.gantt__label-name {
+  flex: 1;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gantt__count {
+  font-size: 11px;
+  font-weight: 600;
+  background: #e5e7eb;
+  color: #4b5563;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gantt__remove {
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.gantt__remove:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.gantt__remove:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 1px;
+}
+
+.gantt__timeline {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  position: relative;
+}
+
+.gantt__rows {
+  position: relative;
+}
+
+.gantt__row {
+  position: relative;
+  border-bottom: 1px solid #f3f4f6;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(var(--day-width) - 1px),
+    #f3f4f6 calc(var(--day-width) - 1px),
+    #f3f4f6 var(--day-width)
+  );
+}
+
+.gantt__row--group {
+  background-color: #f3f4f6;
+}

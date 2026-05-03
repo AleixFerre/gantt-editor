@@ -1,0 +1,129 @@
+<section class="gantt">
+  <header class="gantt__header">
+    <h1 class="gantt__title">Gantt Generator</h1>
+    <p class="gantt__subtitle">
+      Drag a task bar to reschedule it, drag the right edge to resize it, or drag a
+      group bar to shift every task in that group together.
+    </p>
+  </header>
+
+  <div class="gantt__controls">
+    <app-task-form />
+    <app-group-form />
+  </div>
+
+  @if (rows().length === 0) {
+    <p class="gantt__empty">No tasks yet — add one above to get started.</p>
+  } @else {
+    <div class="gantt__chart">
+      <div class="gantt__labels">
+        <div class="gantt__label gantt__label--header">Task</div>
+        @for (row of rows(); track trackRow($index, row)) {
+          @switch (row.kind) {
+            @case ('group') {
+              <div
+                class="gantt__label gantt__label--group"
+                [style.height.px]="rowHeight"
+              >
+                <button
+                  type="button"
+                  class="gantt__chevron"
+                  [attr.aria-label]="
+                    (row.group.collapsed ? 'Expand ' : 'Collapse ') + row.group.name
+                  "
+                  [attr.aria-expanded]="!row.group.collapsed"
+                  (click)="onGroupToggle(row.group.id)"
+                >
+                  {{ row.group.collapsed ? '▸' : '▾' }}
+                </button>
+                <span
+                  class="gantt__swatch gantt__swatch--group"
+                  [style.background-color]="row.group.color"
+                ></span>
+                <span class="gantt__label-name" [title]="row.group.name">
+                  {{ row.group.name }}
+                </span>
+                <span class="gantt__count">{{ row.taskCount }}</span>
+                <button
+                  type="button"
+                  class="gantt__remove"
+                  [attr.aria-label]="'Remove group ' + row.group.name"
+                  (click)="onGroupRemove(row.group.id)"
+                >
+                  ×
+                </button>
+              </div>
+            }
+            @case ('task') {
+              <div
+                class="gantt__label"
+                [class.gantt__label--child]="row.inGroup"
+                [style.height.px]="rowHeight"
+              >
+                <span
+                  class="gantt__swatch"
+                  [style.background-color]="row.task.color"
+                ></span>
+                <span class="gantt__label-name" [title]="row.task.name">
+                  {{ row.task.name }}
+                </span>
+                <button
+                  type="button"
+                  class="gantt__remove"
+                  [attr.aria-label]="'Remove task ' + row.task.name"
+                  (click)="onTaskRemove(row.task.id)"
+                >
+                  ×
+                </button>
+              </div>
+            }
+          }
+        }
+      </div>
+
+      <div class="gantt__timeline">
+        <app-timeline-header [totalDays]="totalDays()" [dayWidth]="dayWidth" />
+
+        <div
+          class="gantt__rows"
+          [style.width.px]="chartWidth()"
+          [style.--day-width.px]="dayWidth"
+        >
+          @for (row of rows(); track trackRow($index, row)) {
+            @switch (row.kind) {
+              @case ('group') {
+                <div
+                  class="gantt__row gantt__row--group"
+                  [style.height.px]="rowHeight"
+                >
+                  @if (row.span; as span) {
+                    <app-group-bar
+                      [name]="row.group.name"
+                      [color]="row.group.color"
+                      [startDay]="span.startDay"
+                      [duration]="span.duration"
+                      [dayWidth]="dayWidth"
+                      [maxDays]="totalDays()"
+                      (moved)="onGroupMove(row.group.id, $event)"
+                    />
+                  }
+                </div>
+              }
+              @case ('task') {
+                <div class="gantt__row" [style.height.px]="rowHeight">
+                  <app-task-bar
+                    [task]="row.task"
+                    [dayWidth]="dayWidth"
+                    [maxDays]="totalDays()"
+                    (moved)="onTaskMove(row.task.id, $event)"
+                    (resized)="onTaskResize(row.task.id, $event)"
+                  />
+                </div>
+              }
+            }
+          }
+        </div>
+      </div>
+    </div>
+  }
+</section>
