@@ -42,3 +42,6 @@ export interface CreateTaskBody {
 }
 
 export type UpdateTaskBody = Partial<CreateTaskBody> & { order?: number };
+
+export type ReorderEntry = Record<number, number>;
+export type ReorderBody = ReorderEntry[];

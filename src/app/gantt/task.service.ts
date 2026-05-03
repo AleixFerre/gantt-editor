@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { GanttRow, Group, GroupSpan, Task } from './gantt.component.model';
-import { ApiGroup } from './gantt-api.service.model';
+import { ApiGroup, ReorderBody } from './gantt-api.service.model';
 import {
   EXPORT_VERSION,
   GanttExport,
@@ -202,6 +202,7 @@ export class TaskService {
     const before = this._tasks().find((t) => t.id === draggedId);
     if (!before) return;
     const previousGroupId = before.groupId;
+    const beforeOrders = this.snapshotTaskOrders();
     let nextGroupId: string | null = previousGroupId;
     this._tasks.update((tasks) => {
       const dragged = tasks.find((t) => t.id === draggedId);
@@ -217,7 +218,12 @@ export class TaskService {
       next.splice(insertAt, 0, updated);
       return next;
     });
-    await this.persistOrdersFor([previousGroupId, nextGroupId], draggedId);
+    await this.persistOrdersFor(
+      [previousGroupId, nextGroupId],
+      draggedId,
+      previousGroupId,
+      beforeOrders,
+    );
   }
 
   async placeGroupRelativeTo(
@@ -226,6 +232,7 @@ export class TaskService {
     position: 'above' | 'below',
   ): Promise<void> {
     if (draggedId === targetId) return;
+    const beforeIdx = new Map(this._groups().map((g, i) => [g.id, i] as const));
     let changed = false;
     this._groups.update((groups) => {
       const dragged = groups.find((g) => g.id === draggedId);
@@ -240,14 +247,15 @@ export class TaskService {
       return next;
     });
     if (!changed) return;
+    const updates: ReorderBody = [];
+    this._groups().forEach((group, index) => {
+      if (beforeIdx.get(group.id) === index) return;
+      const apiId = parseGroupId(group.id);
+      if (apiId !== null) updates.push({ [apiId]: index });
+    });
+    if (updates.length === 0) return;
     try {
-      await Promise.all(
-        this._groups().map((group, index) => {
-          const apiId = parseGroupId(group.id);
-          if (apiId === null) return Promise.resolve();
-          return this.api.updateGroup(apiId, { order: index });
-        }),
-      );
+      await this.api.reorderGroups(updates);
       this.toast.success('Groups reordered');
     } catch (error) {
       this.toast.error(`Could not reorder groups: ${describe(error)}`);
@@ -259,6 +267,7 @@ export class TaskService {
     if (!before) return;
     const previousGroupId = before.groupId;
     if (groupId !== null && !this._groups().some((g) => g.id === groupId)) return;
+    const beforeOrders = this.snapshotTaskOrders();
     this._tasks.update((tasks) => {
       const dragged = tasks.find((t) => t.id === draggedId);
       if (!dragged) return tasks;
@@ -273,37 +282,57 @@ export class TaskService {
       }
       return next;
     });
-    await this.persistOrdersFor([previousGroupId, groupId], draggedId);
+    await this.persistOrdersFor(
+      [previousGroupId, groupId],
+      draggedId,
+      previousGroupId,
+      beforeOrders,
+    );
+  }
+
+  private snapshotTaskOrders(): Map<string, number> {
+    const map = new Map<string, number>();
+    const byGroup = new Map<string | null, Task[]>();
+    for (const task of this._tasks()) {
+      const arr = byGroup.get(task.groupId) ?? [];
+      arr.push(task);
+      byGroup.set(task.groupId, arr);
+    }
+    for (const arr of byGroup.values()) {
+      arr.forEach((task, index) => map.set(task.id, index));
+    }
+    return map;
   }
 
   private async persistOrdersFor(
     groupIds: ReadonlyArray<string | null>,
     draggedId: string,
+    previousDraggedGroupId: string | null,
+    beforeOrders: Map<string, number>,
   ): Promise<void> {
     const unique = Array.from(new Set(groupIds));
     const draggedApiId = parseTaskId(draggedId);
     const draggedTask = this._tasks().find((t) => t.id === draggedId);
+    const updates: ReorderBody = [];
+    for (const groupId of unique) {
+      const tasksInGroup = this._tasks().filter((t) => t.groupId === groupId);
+      tasksInGroup.forEach((task, index) => {
+        if (beforeOrders.get(task.id) === index) return;
+        const apiId = parseTaskId(task.id);
+        if (apiId !== null) updates.push({ [apiId]: index });
+      });
+    }
+    const newGroupId = draggedTask?.groupId ?? null;
+    const groupChanged = newGroupId !== previousDraggedGroupId;
+    const newApiGroup = newGroupId ? parseGroupId(newGroupId) : null;
     try {
-      await Promise.all(
-        unique.flatMap((groupId) => {
-          const tasksInGroup = this._tasks().filter((t) => t.groupId === groupId);
-          return tasksInGroup.map((task, index) => {
-            const apiId = parseTaskId(task.id);
-            if (apiId === null) return Promise.resolve();
-            const isDragged = apiId === draggedApiId;
-            const newApiGroup =
-              isDragged && draggedTask
-                ? draggedTask.groupId
-                  ? parseGroupId(draggedTask.groupId)
-                  : null
-                : undefined;
-            return this.api.updateTask(apiId, {
-              order: index,
-              ...(newApiGroup !== undefined && { group: newApiGroup }),
-            });
-          });
-        }),
-      );
+      const calls: Promise<unknown>[] = [];
+      if (updates.length > 0) calls.push(this.api.reorderTasks(updates));
+      if (draggedApiId !== null && groupChanged) {
+        calls.push(this.api.updateTask(draggedApiId, { group: newApiGroup }));
+      }
+      if (calls.length === 0) return;
+      await Promise.all(calls);
       this.toast.success('Tasks reordered');
     } catch (error) {
       this.toast.error(`Could not reorder tasks: ${describe(error)}`);

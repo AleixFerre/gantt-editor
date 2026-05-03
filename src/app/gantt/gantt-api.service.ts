@@ -8,6 +8,7 @@ import {
   ApiTask,
   CreateGroupBody,
   CreateTaskBody,
+  ReorderBody,
   UpdateGroupBody,
   UpdateTaskBody,
 } from './gantt-api.service.model';
@@ -35,6 +36,18 @@ export class GanttApiService {
   updateGroup(id: number, body: UpdateGroupBody): Promise<ApiGroup> {
     return firstValueFrom(
       this.http.patch<ApiGroup>(`${this.base}/groups/${id}`, body),
+    );
+  }
+
+  reorderGroups(body: ReorderBody): Promise<void> {
+    return firstValueFrom(
+      this.http.patch<void>(`${this.base}/groups/reorder`, body),
+    );
+  }
+
+  reorderTasks(body: ReorderBody): Promise<void> {
+    return firstValueFrom(
+      this.http.patch<void>(`${this.base}/tasks/reorder`, body),
     );
   }
 
