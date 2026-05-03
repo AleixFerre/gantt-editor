@@ -1,15 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { GanttRow, Group, GroupSpan, Task } from './gantt.component.model';
+import { ApiGroup } from './gantt-api.service.model';
 import {
-  ApiGroup,
   EXPORT_VERSION,
   GanttExport,
-  GanttRow,
-  Group,
-  GroupSpan,
   MIN_VISIBLE_DAYS,
-  Task,
   TRAILING_PADDING_DAYS,
-} from '../models';
+} from './task.service.model';
 import { ToastService } from '../shared/toast.service';
 import { GanttApiService } from './gantt-api.service';
 
@@ -215,12 +212,13 @@ export class TaskService {
     await this.persistOrdersFor([previousGroupId, nextGroupId], draggedId);
   }
 
-  placeGroupRelativeTo(
+  async placeGroupRelativeTo(
     draggedId: string,
     targetId: string,
     position: 'above' | 'below',
-  ): void {
+  ): Promise<void> {
     if (draggedId === targetId) return;
+    let changed = false;
     this._groups.update((groups) => {
       const dragged = groups.find((g) => g.id === draggedId);
       if (!dragged) return groups;
@@ -230,8 +228,22 @@ export class TaskService {
       const insertAt = position === 'above' ? targetIdx : targetIdx + 1;
       const next = [...without];
       next.splice(insertAt, 0, dragged);
+      changed = true;
       return next;
     });
+    if (!changed) return;
+    try {
+      await Promise.all(
+        this._groups().map((group, index) => {
+          const apiId = parseGroupId(group.id);
+          if (apiId === null) return Promise.resolve();
+          return this.api.updateGroup(apiId, { order: index });
+        }),
+      );
+      this.toast.success('Groups reordered');
+    } catch (error) {
+      this.toast.error(`Could not reorder groups: ${describe(error)}`);
+    }
   }
 
   async placeTaskInGroup(draggedId: string, groupId: string | null): Promise<void> {
@@ -303,6 +315,27 @@ export class TaskService {
         return next;
       }),
     );
+  }
+
+  async updateGroup(id: string, updates: { name: string; color: string }): Promise<void> {
+    const apiId = parseGroupId(id);
+    if (apiId === null) return;
+    const before = this._groups().find((g) => g.id === id);
+    if (!before) return;
+    const trimmedName = updates.name.trim();
+    if (!trimmedName) return;
+    if (before.name === trimmedName && before.color === updates.color) return;
+    this._groups.update((groups) =>
+      groups.map((group) =>
+        group.id === id ? { ...group, name: trimmedName, color: updates.color } : group,
+      ),
+    );
+    try {
+      await this.api.updateGroup(apiId, { name: trimmedName, color: updates.color });
+      this.toast.success(`Group “${trimmedName}” updated`);
+    } catch (error) {
+      this.toast.error(`Could not update group: ${describe(error)}`);
+    }
   }
 
   removeGroup(id: string): void {

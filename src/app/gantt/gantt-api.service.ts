@@ -7,8 +7,9 @@ import {
   ApiTask,
   CreateGroupBody,
   CreateTaskBody,
+  UpdateGroupBody,
   UpdateTaskBody,
-} from '../models';
+} from './gantt-api.service.model';
 
 @Injectable({ providedIn: 'root' })
 export class GanttApiService {
@@ -21,6 +22,12 @@ export class GanttApiService {
 
   createGroup(body: CreateGroupBody): Promise<ApiGroup> {
     return firstValueFrom(this.http.post<ApiGroup>(`${this.base}/groups`, body));
+  }
+
+  updateGroup(id: number, body: UpdateGroupBody): Promise<ApiGroup> {
+    return firstValueFrom(
+      this.http.patch<ApiGroup>(`${this.base}/groups/${id}`, body),
+    );
   }
 
   createTask(body: CreateTaskBody): Promise<ApiTask> {

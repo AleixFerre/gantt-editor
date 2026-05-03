@@ -1,7 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DAY_WIDTH_PX, GanttRow, ROW_HEIGHT_PX, Task, TaskEdit } from '../models';
+import { DAY_WIDTH_PX, GanttRow, Group, ROW_HEIGHT_PX, Task } from './gantt.component.model';
+import { TaskEdit } from './task-edit-dialog/task-edit-dialog.component.model';
+import { GroupEdit } from './group-edit-dialog/group-edit-dialog.component.model';
 import { GanttEmptyComponent } from './gantt-empty/gantt-empty.component';
 import { GroupBarComponent } from './group-bar/group-bar.component';
+import { GroupEditDialogComponent } from './group-edit-dialog/group-edit-dialog.component';
 import { GroupFormComponent } from './group-form/group-form.component';
 import { TaskBarComponent } from './task-bar/task-bar.component';
 import { TaskEditDialogComponent } from './task-edit-dialog/task-edit-dialog.component';
@@ -30,6 +33,7 @@ type DropTarget =
     TaskBarComponent,
     GroupBarComponent,
     TaskEditDialogComponent,
+    GroupEditDialogComponent,
     GanttEmptyComponent,
   ],
   templateUrl: './gantt.component.html',
@@ -227,6 +231,28 @@ export class GanttComponent implements OnInit {
     if (!id) return;
     this.taskService.updateTask(id, updates);
     this.editingTaskId.set(null);
+  }
+
+  protected readonly editingGroupId = signal<string | null>(null);
+  protected readonly editingGroup = computed<Group | null>(() => {
+    const id = this.editingGroupId();
+    if (!id) return null;
+    return this.taskService.groups().find((group) => group.id === id) ?? null;
+  });
+
+  protected startEditGroup(id: string): void {
+    this.editingGroupId.set(id);
+  }
+
+  protected cancelEditGroup(): void {
+    this.editingGroupId.set(null);
+  }
+
+  protected saveEditGroup(updates: GroupEdit): void {
+    const id = this.editingGroupId();
+    if (!id) return;
+    void this.taskService.updateGroup(id, updates);
+    this.editingGroupId.set(null);
   }
 
   protected exportJson(): void {

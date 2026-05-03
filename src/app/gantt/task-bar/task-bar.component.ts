@@ -8,7 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { Task } from '../../models';
+import { Task } from '../gantt.component.model';
 
 type DragMode = 'move' | 'resize';
 
@@ -24,7 +24,6 @@ type DragMode = 'move' | 'resize';
     '[class.task-bar--dragging]': 'mode() !== null',
     '[attr.aria-label]': 'ariaLabel()',
     '(pointerdown)': 'onMoveStart($event)',
-    '(keydown)': 'onKeyDown($event)',
   },
   templateUrl: './task-bar.component.html',
   styleUrl: './task-bar.component.scss',
@@ -43,7 +42,7 @@ export class TaskBarComponent {
   protected readonly widthPx = computed(() => this.task().duration * this.dayWidth());
   protected readonly ariaLabel = computed(() => {
     const t = this.task();
-    return `${t.name}, starts day ${t.startDay + 1}, duration ${t.duration} day${t.duration === 1 ? '' : 's'}. Use arrow keys to move.`;
+    return `${t.name}, starts day ${t.startDay + 1}, duration ${t.duration} day${t.duration === 1 ? '' : 's'}.`;
   });
 
   private startClientX = 0;
@@ -68,27 +67,6 @@ export class TaskBarComponent {
     event.preventDefault();
     event.stopPropagation();
     this.beginDrag('resize', event.clientX, this.task().duration);
-  }
-
-  protected onKeyDown(event: KeyboardEvent): void {
-    if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      this.moved.emit(Math.max(0, this.task().startDay - 1));
-      this.committed.emit('move');
-    } else if (event.key === 'ArrowRight') {
-      event.preventDefault();
-      const cap = Math.max(0, this.maxDays() - this.task().duration);
-      this.moved.emit(Math.min(cap, this.task().startDay + 1));
-      this.committed.emit('move');
-    } else if (event.key === '+' || event.key === '=') {
-      event.preventDefault();
-      this.resized.emit(this.task().duration + 1);
-      this.committed.emit('resize');
-    } else if (event.key === '-' || event.key === '_') {
-      event.preventDefault();
-      this.resized.emit(Math.max(1, this.task().duration - 1));
-      this.committed.emit('resize');
-    }
   }
 
   private beginDrag(mode: DragMode, clientX: number, startValue: number): void {
@@ -122,7 +100,9 @@ export class TaskBarComponent {
     this.detachWindow();
     const dragMode = this.mode();
     this.mode.set(null);
-    if (dragMode) this.committed.emit(dragMode);
+    if (!dragMode) return;
+    const finalValue = dragMode === 'move' ? this.task().startDay : this.task().duration;
+    if (finalValue !== this.startValue) this.committed.emit(dragMode);
   }
 
   private detachWindow(): void {

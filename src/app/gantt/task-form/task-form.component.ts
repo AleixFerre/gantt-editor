@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { TASK_COLORS } from '../../models';
+import { TASK_COLORS } from './task-form.component.model';
 import { TaskService } from '../task.service';
 
 @Component({

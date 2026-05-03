@@ -9,7 +9,8 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Group, Task, TaskEdit } from '../../models';
+import { Group, Task } from '../gantt.component.model';
+import { TaskEdit } from './task-edit-dialog.component.model';
 
 @Component({
   selector: 'app-task-edit-dialog',

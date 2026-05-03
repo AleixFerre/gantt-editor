@@ -84,9 +84,14 @@
                 class="gantt__swatch gantt__swatch--group"
                 [style.background-color]="row.group.color"
               ></span>
-              <span class="gantt__label-name" [title]="row.group.name">
+              <button
+                type="button"
+                class="gantt__label-name gantt__label-name--editable"
+                [title]="row.group.name + ' (click to edit)'"
+                (click)="startEditGroup(row.group.id)"
+              >
                 {{ row.group.name }}
-              </span>
+              </button>
               <span class="gantt__count">{{ row.taskCount }}</span>
               <button
                 type="button"
@@ -183,6 +188,11 @@
     [groups]="groups()"
     (saved)="saveEditTask($event)"
     (cancelled)="cancelEditTask()"
+  />
+  <app-group-edit-dialog
+    [group]="editingGroup()"
+    (saved)="saveEditGroup($event)"
+    (cancelled)="cancelEditGroup()"
   />
 </section>
 }

@@ -1,0 +1,97 @@
+:host {
+  display: contents;
+}
+.edit-dialog {
+  border: none;
+  border-radius: 10px;
+  padding: 0;
+  width: min(420px, 92vw);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+.edit-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+}
+.edit-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+.edit-dialog__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+.edit-dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.edit-dialog__row {
+  display: flex;
+  gap: 12px;
+}
+.edit-dialog__row .edit-dialog__field {
+  flex: 1;
+}
+.edit-dialog__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+input,
+select {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+}
+input[type='color'] {
+  width: 56px;
+  height: 36px;
+  padding: 2px;
+  cursor: pointer;
+}
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 1px;
+  border-color: #4f46e5;
+}
+.edit-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+.edit-dialog__btn {
+  padding: 8px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #111827;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.edit-dialog__btn:hover {
+  background: #f3f4f6;
+}
+.edit-dialog__btn:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 1px;
+}
+.edit-dialog__btn--primary {
+  background: #4f46e5;
+  color: #fff;
+  border-color: #4f46e5;
+}
+.edit-dialog__btn--primary:hover:not(:disabled) {
+  background: #4338ca;
+}
+.edit-dialog__btn--primary:disabled {
+  background: #c7d2fe;
+  border-color: #c7d2fe;
+  cursor: not-allowed;
+}

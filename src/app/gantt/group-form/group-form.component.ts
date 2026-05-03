@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { GROUP_COLORS } from '../../models';
+import { GROUP_COLORS } from './group-form.component.model';
 import { TaskService } from '../task.service';
 
 @Component({
