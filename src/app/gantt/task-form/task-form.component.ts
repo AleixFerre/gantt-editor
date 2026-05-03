@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TASK_COLORS } from '../../models';
 import { TaskService } from '../task.service';
@@ -18,11 +18,22 @@ export class TaskFormComponent {
 
   protected readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(60)]],
-    groupId: this.fb.control<string | null>(null),
+    groupId: ['', [Validators.required]],
     startDay: [0, [Validators.required, Validators.min(0)]],
     duration: [3, [Validators.required, Validators.min(1)]],
     color: [pickRandomColor(), [Validators.required]],
   });
+
+  constructor() {
+    effect(() => {
+      const groups = this.groups();
+      if (groups.length === 0) return;
+      const current = this.form.controls.groupId.value;
+      if (!current || !groups.some((g) => g.id === current)) {
+        this.form.controls.groupId.setValue(groups[0].id);
+      }
+    });
+  }
 
   protected submit(): void {
     if (this.form.invalid) return;

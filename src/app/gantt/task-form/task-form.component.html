@@ -11,7 +11,6 @@
   <label class="task-form__field">
     <span class="task-form__label">Group</span>
     <select formControlName="groupId">
-      <option [ngValue]="null">— No group —</option>
       @for (group of groups(); track group.id) {
         <option [ngValue]="group.id">{{ group.name }}</option>
       }
