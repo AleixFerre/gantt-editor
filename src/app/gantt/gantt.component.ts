@@ -1,19 +1,13 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { GanttEmptyComponent } from './gantt-empty/gantt-empty';
-import { GroupBarComponent } from './group-bar/group-bar';
-import { GroupFormComponent } from './group-form/group-form';
-import { TaskBarComponent } from './task-bar/task-bar';
-import {
-  TaskEdit,
-  TaskEditDialogComponent,
-} from './task-edit-dialog/task-edit-dialog';
-import { TaskFormComponent } from './task-form/task-form';
-import { GanttRow, Task } from './task.model';
+import { DAY_WIDTH_PX, GanttRow, ROW_HEIGHT_PX, Task, TaskEdit } from '../models';
+import { GanttEmptyComponent } from './gantt-empty/gantt-empty.component';
+import { GroupBarComponent } from './group-bar/group-bar.component';
+import { GroupFormComponent } from './group-form/group-form.component';
+import { TaskBarComponent } from './task-bar/task-bar.component';
+import { TaskEditDialogComponent } from './task-edit-dialog/task-edit-dialog.component';
+import { TaskFormComponent } from './task-form/task-form.component';
 import { TaskService } from './task.service';
-import { TimelineHeaderComponent } from './timeline-header/timeline-header';
-
-const DAY_WIDTH_PX = 40;
-const ROW_HEIGHT_PX = 44;
+import { TimelineHeaderComponent } from './timeline-header/timeline-header.component';
 
 type DragSource =
   | { readonly kind: 'task'; readonly id: string }
@@ -38,8 +32,8 @@ type DropTarget =
     TaskEditDialogComponent,
     GanttEmptyComponent,
   ],
-  templateUrl: './gantt.html',
-  styleUrl: './gantt.scss',
+  templateUrl: './gantt.component.html',
+  styleUrl: './gantt.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GanttComponent implements OnInit {
@@ -52,9 +46,7 @@ export class GanttComponent implements OnInit {
   protected readonly totalDays = this.taskService.totalDays;
   protected readonly loaded = this.taskService.loaded;
   protected readonly loadError = this.taskService.loadError;
-  protected readonly isEmpty = computed(
-    () => this.loaded() && this.groups().length === 0,
-  );
+  protected readonly isEmpty = computed(() => this.loaded() && this.groups().length === 0);
   protected readonly chartWidth = computed(() => this.totalDays() * this.dayWidth);
 
   ngOnInit(): void {
@@ -73,6 +65,14 @@ export class GanttComponent implements OnInit {
 
   protected onTaskResize(id: string, duration: number): void {
     this.taskService.updateDuration(id, duration);
+  }
+
+  protected onTaskCommit(id: string): void {
+    void this.taskService.persistTaskBounds(id);
+  }
+
+  protected onGroupCommit(id: string): void {
+    void this.taskService.persistGroupTaskBounds(id);
   }
 
   protected onTaskRemove(id: string): void {
@@ -111,12 +111,7 @@ export class GanttComponent implements OnInit {
     const position: 'above' | 'below' =
       event.clientY < rect.top + rect.height / 2 ? 'above' : 'below';
     const current = this.dropTarget();
-    if (
-      !current ||
-      current.kind !== 'task' ||
-      current.id !== id ||
-      current.position !== position
-    ) {
+    if (!current || current.kind !== 'task' || current.id !== id || current.position !== position) {
       this.dropTarget.set({ kind: 'task', id, position });
     }
   }
@@ -145,12 +140,7 @@ export class GanttComponent implements OnInit {
       mode = event.clientY < rect.top + rect.height / 2 ? 'above' : 'below';
     }
     const current = this.dropTarget();
-    if (
-      !current ||
-      current.kind !== 'group' ||
-      current.id !== groupId ||
-      current.mode !== mode
-    ) {
+    if (!current || current.kind !== 'group' || current.id !== groupId || current.mode !== mode) {
       this.dropTarget.set({ kind: 'group', id: groupId, mode });
     }
   }
@@ -174,37 +164,27 @@ export class GanttComponent implements OnInit {
 
   protected isTaskDropAbove(id: string): boolean {
     const target = this.dropTarget();
-    return (
-      !!target && target.kind === 'task' && target.id === id && target.position === 'above'
-    );
+    return !!target && target.kind === 'task' && target.id === id && target.position === 'above';
   }
 
   protected isTaskDropBelow(id: string): boolean {
     const target = this.dropTarget();
-    return (
-      !!target && target.kind === 'task' && target.id === id && target.position === 'below'
-    );
+    return !!target && target.kind === 'task' && target.id === id && target.position === 'below';
   }
 
   protected isGroupDropInto(groupId: string): boolean {
     const target = this.dropTarget();
-    return (
-      !!target && target.kind === 'group' && target.id === groupId && target.mode === 'into'
-    );
+    return !!target && target.kind === 'group' && target.id === groupId && target.mode === 'into';
   }
 
   protected isGroupDropAbove(groupId: string): boolean {
     const target = this.dropTarget();
-    return (
-      !!target && target.kind === 'group' && target.id === groupId && target.mode === 'above'
-    );
+    return !!target && target.kind === 'group' && target.id === groupId && target.mode === 'above';
   }
 
   protected isGroupDropBelow(groupId: string): boolean {
     const target = this.dropTarget();
-    return (
-      !!target && target.kind === 'group' && target.id === groupId && target.mode === 'below'
-    );
+    return !!target && target.kind === 'group' && target.id === groupId && target.mode === 'below';
   }
 
   protected isTaskDragging(id: string): boolean {
@@ -268,8 +248,7 @@ export class GanttComponent implements OnInit {
       const data: unknown = JSON.parse(text);
       this.taskService.importState(data);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Could not read file.';
+      const message = error instanceof Error ? error.message : 'Could not read file.';
       alert(`Import failed: ${message}`);
     } finally {
       input.value = '';

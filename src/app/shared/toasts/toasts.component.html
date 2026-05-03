@@ -1,0 +1,14 @@
+<div class="toasts" role="region" aria-live="polite" aria-label="Notifications">
+  @for (toast of toasts(); track toast.id) {
+    <button
+      type="button"
+      class="toast"
+      [class.toast--success]="toast.kind === 'success'"
+      [class.toast--error]="toast.kind === 'error'"
+      (click)="dismiss(toast.id)"
+      [attr.aria-label]="'Dismiss notification: ' + toast.message"
+    >
+      {{ toast.message }}
+    </button>
+  }
+</div>

@@ -110,6 +110,7 @@
                   [dayWidth]="dayWidth"
                   [maxDays]="totalDays()"
                   (moved)="onGroupMove(row.group.id, $event)"
+                  (committed)="onGroupCommit(row.group.id)"
                 />
               }
             </div>
@@ -163,6 +164,7 @@
                 [maxDays]="totalDays()"
                 (moved)="onTaskMove(row.task.id, $event)"
                 (resized)="onTaskResize(row.task.id, $event)"
+                (committed)="onTaskCommit(row.task.id)"
               />
             </div>
           }

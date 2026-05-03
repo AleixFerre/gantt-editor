@@ -4,11 +4,11 @@ export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    loadComponent: () => import('./gantt/gantt').then((m) => m.GanttComponent),
+    loadComponent: () => import('./gantt/gantt.component').then((m) => m.GanttComponent),
   },
   {
     path: '**',
     loadComponent: () =>
-      import('./not-found/not-found').then((m) => m.NotFoundComponent),
+      import('./not-found/not-found.component').then((m) => m.NotFoundComponent),
   },
 ];

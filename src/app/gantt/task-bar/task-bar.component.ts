@@ -26,61 +26,8 @@ type DragMode = 'move' | 'resize';
     '(pointerdown)': 'onMoveStart($event)',
     '(keydown)': 'onKeyDown($event)',
   },
-  template: `
-    <span class="task-bar__name">{{ task().name }}</span>
-    <span
-      class="task-bar__resize"
-      role="separator"
-      aria-label="Resize task duration"
-      (pointerdown)="onResizeStart($event)"
-    ></span>
-  `,
-  styles: `
-    :host {
-      position: absolute;
-      top: 6px;
-      bottom: 6px;
-      left: 0;
-      border-radius: 6px;
-      display: flex;
-      align-items: stretch;
-      padding-left: 10px;
-      color: #fff;
-      font-size: 13px;
-      font-weight: 500;
-      user-select: none;
-      touch-action: none;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
-      overflow: hidden;
-      cursor: grab;
-      will-change: transform;
-    }
-    :host(.task-bar--dragging) {
-      cursor: grabbing;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-    }
-    :host(:focus-visible) {
-      outline: 2px solid #fbbf24;
-      outline-offset: 2px;
-    }
-    .task-bar__name {
-      flex: 1;
-      align-self: center;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      pointer-events: none;
-    }
-    .task-bar__resize {
-      width: 10px;
-      cursor: ew-resize;
-      background: rgba(0, 0, 0, 0.18);
-      flex-shrink: 0;
-    }
-    .task-bar__resize:hover {
-      background: rgba(0, 0, 0, 0.32);
-    }
-  `,
+  templateUrl: './task-bar.component.html',
+  styleUrl: './task-bar.component.scss',
 })
 export class TaskBarComponent {
   readonly task = input.required<Task>();
@@ -89,6 +36,7 @@ export class TaskBarComponent {
 
   readonly moved = output<number>();
   readonly resized = output<number>();
+  readonly committed = output<void>();
 
   protected readonly mode = signal<DragMode | null>(null);
   protected readonly leftPx = computed(() => this.task().startDay * this.dayWidth());
@@ -126,16 +74,20 @@ export class TaskBarComponent {
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
       this.moved.emit(Math.max(0, this.task().startDay - 1));
+      this.committed.emit();
     } else if (event.key === 'ArrowRight') {
       event.preventDefault();
       const cap = Math.max(0, this.maxDays() - this.task().duration);
       this.moved.emit(Math.min(cap, this.task().startDay + 1));
+      this.committed.emit();
     } else if (event.key === '+' || event.key === '=') {
       event.preventDefault();
       this.resized.emit(this.task().duration + 1);
+      this.committed.emit();
     } else if (event.key === '-' || event.key === '_') {
       event.preventDefault();
       this.resized.emit(Math.max(1, this.task().duration - 1));
+      this.committed.emit();
     }
   }
 
@@ -168,7 +120,9 @@ export class TaskBarComponent {
 
   private endDrag(): void {
     this.detachWindow();
+    const wasDragging = this.mode() !== null;
     this.mode.set(null);
+    if (wasDragging) this.committed.emit();
   }
 
   private detachWindow(): void {

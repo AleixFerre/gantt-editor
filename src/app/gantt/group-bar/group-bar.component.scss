@@ -1,0 +1,50 @@
+:host {
+  position: absolute;
+  top: 10px;
+  height: 14px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 6px;
+  background: color-mix(in srgb, var(--group-color) 30%, white);
+  border: 1px solid var(--group-color);
+  border-radius: 3px;
+  color: #111827;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  user-select: none;
+  touch-action: none;
+  cursor: grab;
+  will-change: transform;
+}
+:host(.group-bar--dragging) {
+  cursor: grabbing;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+:host(:focus-visible) {
+  outline: 2px solid #fbbf24;
+  outline-offset: 2px;
+}
+.group-bar__name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+.group-bar__cap {
+  width: 6px;
+  height: 12px;
+  background: var(--group-color);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.group-bar__cap--start {
+  clip-path: polygon(0 0, 100% 0, 100% 50%, 0 100%);
+}
+.group-bar__cap--end {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 50%);
+}

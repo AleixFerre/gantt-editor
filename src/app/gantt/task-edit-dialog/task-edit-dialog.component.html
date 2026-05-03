@@ -1,0 +1,47 @@
+<dialog #dialog class="edit-dialog" (close)="cancelled.emit()">
+  <form [formGroup]="form" (ngSubmit)="submit()" class="edit-dialog__form" novalidate>
+    <h2 class="edit-dialog__title">Edit task</h2>
+
+    <label class="edit-dialog__field">
+      <span class="edit-dialog__label">Name</span>
+      <input type="text" formControlName="name" autocomplete="off" />
+    </label>
+
+    <label class="edit-dialog__field">
+      <span class="edit-dialog__label">Group</span>
+      <select formControlName="groupId">
+        <option [ngValue]="null">— No group —</option>
+        @for (group of groups(); track group.id) {
+          <option [ngValue]="group.id">{{ group.name }}</option>
+        }
+      </select>
+    </label>
+
+    <div class="edit-dialog__row">
+      <label class="edit-dialog__field">
+        <span class="edit-dialog__label">Start day</span>
+        <input type="number" min="0" formControlName="startDay" />
+      </label>
+      <label class="edit-dialog__field">
+        <span class="edit-dialog__label">Duration</span>
+        <input type="number" min="1" formControlName="duration" />
+      </label>
+    </div>
+
+    <label class="edit-dialog__field">
+      <span class="edit-dialog__label">Color</span>
+      <input type="color" formControlName="color" aria-label="Task color" />
+    </label>
+
+    <div class="edit-dialog__actions">
+      <button type="button" class="edit-dialog__btn" (click)="cancel()">Cancel</button>
+      <button
+        type="submit"
+        class="edit-dialog__btn edit-dialog__btn--primary"
+        [disabled]="form.invalid"
+      >
+        Save
+      </button>
+    </div>
+  </form>
+</dialog>

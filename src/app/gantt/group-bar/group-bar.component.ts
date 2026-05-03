@@ -23,63 +23,8 @@ import {
     '(pointerdown)': 'onPointerDown($event)',
     '(keydown)': 'onKeyDown($event)',
   },
-  template: `
-    <span class="group-bar__cap group-bar__cap--start"></span>
-    <span class="group-bar__name">{{ name() }}</span>
-    <span class="group-bar__cap group-bar__cap--end"></span>
-  `,
-  styles: `
-    :host {
-      position: absolute;
-      top: 10px;
-      height: 14px;
-      left: 0;
-      display: flex;
-      align-items: center;
-      padding: 0 8px;
-      gap: 6px;
-      background: color-mix(in srgb, var(--group-color) 30%, white);
-      border: 1px solid var(--group-color);
-      border-radius: 3px;
-      color: #111827;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      user-select: none;
-      touch-action: none;
-      cursor: grab;
-      will-change: transform;
-    }
-    :host(.group-bar--dragging) {
-      cursor: grabbing;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-    }
-    :host(:focus-visible) {
-      outline: 2px solid #fbbf24;
-      outline-offset: 2px;
-    }
-    .group-bar__name {
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      pointer-events: none;
-      text-transform: uppercase;
-    }
-    .group-bar__cap {
-      width: 6px;
-      height: 12px;
-      background: var(--group-color);
-      flex-shrink: 0;
-      pointer-events: none;
-    }
-    .group-bar__cap--start {
-      clip-path: polygon(0 0, 100% 0, 100% 50%, 0 100%);
-    }
-    .group-bar__cap--end {
-      clip-path: polygon(0 0, 100% 0, 100% 100%, 0 50%);
-    }
-  `,
+  templateUrl: './group-bar.component.html',
+  styleUrl: './group-bar.component.scss',
 })
 export class GroupBarComponent {
   readonly name = input.required<string>();
@@ -90,6 +35,7 @@ export class GroupBarComponent {
   readonly maxDays = input.required<number>();
 
   readonly moved = output<number>();
+  readonly committed = output<void>();
 
   protected readonly dragging = signal(false);
   protected readonly leftPx = computed(() => this.startDay() * this.dayWidth());
@@ -123,10 +69,12 @@ export class GroupBarComponent {
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
       this.moved.emit(Math.max(0, this.startDay() - 1));
+      this.committed.emit();
     } else if (event.key === 'ArrowRight') {
       event.preventDefault();
       const cap = Math.max(0, this.maxDays() - this.duration());
       this.moved.emit(Math.min(cap, this.startDay() + 1));
+      this.committed.emit();
     }
   }
 
@@ -142,7 +90,9 @@ export class GroupBarComponent {
 
   private endDrag(): void {
     this.detachWindow();
+    const wasDragging = this.dragging();
     this.dragging.set(false);
+    if (wasDragging) this.committed.emit();
   }
 
   private detachWindow(): void {

@@ -1,0 +1,7 @@
+<span class="task-bar__name">{{ task().name }}</span>
+<span
+  class="task-bar__resize"
+  role="separator"
+  aria-label="Resize task duration"
+  (pointerdown)="onResizeStart($event)"
+></span>

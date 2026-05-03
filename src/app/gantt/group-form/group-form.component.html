@@ -1,0 +1,14 @@
+<form [formGroup]="form" (ngSubmit)="submit()" class="group-form" novalidate>
+  <label class="group-form__field">
+    <span class="group-form__label">New group</span>
+    <input
+      type="text"
+      formControlName="name"
+      placeholder="e.g. Phase 1"
+      autocomplete="off"
+    />
+  </label>
+  <button type="submit" class="group-form__submit" [disabled]="form.invalid">
+    + Add group
+  </button>
+</form>

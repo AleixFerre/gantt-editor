@@ -1,0 +1,12 @@
+<div class="timeline-header" [style.width.px]="totalWidth()" role="row">
+  @for (day of days(); track day) {
+    <div
+      class="timeline-header__day"
+      [class.timeline-header__day--week]="day % 7 === 0"
+      [style.width.px]="dayWidth()"
+      role="columnheader"
+    >
+      {{ day + 1 }}
+    </div>
+  }
+</div>

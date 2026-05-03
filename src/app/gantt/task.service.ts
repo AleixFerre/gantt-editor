@@ -1,22 +1,25 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { GanttApiService, type ApiGroup } from './gantt-api.service';
-import { GanttRow, Group, GroupSpan, Task } from './task.model';
-
-const MIN_VISIBLE_DAYS = 30;
-const TRAILING_PADDING_DAYS = 5;
-const EXPORT_VERSION = 1;
-const DEFAULT_TASK_DURATION = 1;
-
-export interface GanttExport {
-  version: number;
-  groups: Group[];
-  tasks: Task[];
-}
+import {
+  ApiGroup,
+  EXPORT_VERSION,
+  GanttExport,
+  GanttRow,
+  Group,
+  GroupSpan,
+  MIN_VISIBLE_DAYS,
+  Task,
+  TRAILING_PADDING_DAYS,
+} from '../models';
+import { GanttApiService } from './gantt-api.service';
 
 const groupKey = (id: number) => `g-${id}`;
 const taskKey = (id: number) => `t-${id}`;
 const parseGroupId = (key: string): number | null => {
   const match = /^g-(\d+)$/.exec(key);
+  return match ? Number(match[1]) : null;
+};
+const parseTaskId = (key: string): number | null => {
+  const match = /^t-(\d+)$/.exec(key);
   return match ? Number(match[1]) : null;
 };
 
@@ -93,6 +96,8 @@ export class TaskService {
       name: task.name,
       color: task.color,
       order,
+      start: task.startDay,
+      duration: task.duration,
       group: apiGroup,
     });
     const newTask: Task = {
@@ -112,6 +117,28 @@ export class TaskService {
     const id = groupKey(created.id);
     this._groups.update((groups) => [...groups, { ...group, id, collapsed: false }]);
     return id;
+  }
+
+  async persistTaskBounds(id: string): Promise<void> {
+    const apiId = parseTaskId(id);
+    if (apiId === null) return;
+    const task = this._tasks().find((t) => t.id === id);
+    if (!task) return;
+    await this.api.updateTask(apiId, {
+      start: task.startDay,
+      duration: task.duration,
+    });
+  }
+
+  async persistGroupTaskBounds(groupId: string): Promise<void> {
+    const tasks = this._tasks().filter((t) => t.groupId === groupId);
+    await Promise.all(
+      tasks.map((task) => {
+        const apiId = parseTaskId(task.id);
+        if (apiId === null) return Promise.resolve();
+        return this.api.updateTask(apiId, { start: task.startDay });
+      }),
+    );
   }
 
   removeTask(id: string): void {
@@ -271,8 +298,8 @@ function mapApiGroups(apiGroups: ApiGroup[]): { groups: Group[]; tasks: Task[] }
         id: taskKey(t.id),
         name: t.name,
         color: t.color,
-        startDay: 0,
-        duration: DEFAULT_TASK_DURATION,
+        startDay: t.start,
+        duration: t.duration,
         groupId: groupKey(g.id),
       });
     }

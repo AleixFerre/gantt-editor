@@ -1,0 +1,24 @@
+:host {
+  display: block;
+}
+.timeline-header {
+  display: flex;
+  height: 32px;
+  background: #f3f4f6;
+  border-bottom: 1px solid #d1d5db;
+}
+.timeline-header__day {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #4b5563;
+  border-right: 1px solid #e5e7eb;
+}
+.timeline-header__day--week {
+  background: #e5e7eb;
+  color: #111827;
+  font-weight: 600;
+}
