@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://gantt-editor.example.com/sitemap.xml

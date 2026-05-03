@@ -1,0 +1,19 @@
+{
+  "name": "Gantt Editor Online",
+  "short_name": "Gantt Editor",
+  "description": "Interactive in-browser Gantt chart editor with drag-and-drop scheduling, resizable task bars, and task grouping.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}
