@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  computed,
   effect,
   inject,
   input,
@@ -22,13 +23,18 @@ import { TaskEdit } from './task-edit-dialog.component.model';
 export class TaskEditDialogComponent {
   private readonly fb = inject(FormBuilder);
 
+  readonly open = input<boolean>(false);
   readonly task = input<Task | null>(null);
   readonly groups = input.required<readonly Group[]>();
+  readonly lockedGroupId = input<string | null>(null);
 
   readonly saved = output<TaskEdit>();
   readonly cancelled = output<void>();
 
   private readonly dialogRef = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
+
+  protected readonly title = computed(() => (this.task() ? 'Edit task' : 'New task'));
+  protected readonly submitLabel = computed(() => (this.task() ? 'Save' : 'Create'));
 
   protected readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(60)]],
@@ -40,16 +46,23 @@ export class TaskEditDialogComponent {
 
   constructor() {
     effect(() => {
+      const isOpen = this.open();
       const task = this.task();
+      const locked = this.lockedGroupId();
       const dialog = this.dialogRef().nativeElement;
-      if (task) {
+      if (isOpen) {
         this.form.reset({
-          name: task.name,
-          groupId: task.groupId,
-          startDay: task.startDay,
-          duration: task.duration,
-          color: task.color,
+          name: task?.name ?? '',
+          groupId: task?.groupId ?? locked ?? null,
+          startDay: task?.startDay ?? 0,
+          duration: task?.duration ?? 1,
+          color: task?.color ?? '#4f46e5',
         });
+        if (locked !== null) {
+          this.form.controls.groupId.disable();
+        } else {
+          this.form.controls.groupId.enable();
+        }
         if (!dialog.open) dialog.showModal();
       } else if (dialog.open) {
         dialog.close();

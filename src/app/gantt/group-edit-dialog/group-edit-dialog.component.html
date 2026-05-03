@@ -1,6 +1,6 @@
 <dialog #dialog class="edit-dialog" (close)="cancelled.emit()">
   <form [formGroup]="form" (ngSubmit)="submit()" class="edit-dialog__form" novalidate>
-    <h2 class="edit-dialog__title">Edit group</h2>
+    <h2 class="edit-dialog__title">{{ title() }}</h2>
 
     <label class="edit-dialog__field">
       <span class="edit-dialog__label">Name</span>
@@ -19,7 +19,7 @@
         class="edit-dialog__btn edit-dialog__btn--primary"
         [disabled]="form.invalid"
       >
-        Save
+        {{ submitLabel() }}
       </button>
     </div>
   </form>

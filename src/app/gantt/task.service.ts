@@ -1,12 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { GanttRow, Group, GroupSpan, Task } from './gantt.component.model';
 import { ApiGroup, ReorderBody } from './gantt-api.service.model';
-import {
-  EXPORT_VERSION,
-  GanttExport,
-  MIN_VISIBLE_DAYS,
-  TRAILING_PADDING_DAYS,
-} from './task.service.model';
+import { MIN_VISIBLE_DAYS, TRAILING_PADDING_DAYS } from './task.service.model';
 import { ToastService } from '../shared/toast.service';
 import { GanttApiService } from './gantt-api.service';
 
@@ -420,20 +415,6 @@ export class TaskService {
     );
   }
 
-  exportState(): GanttExport {
-    return {
-      version: EXPORT_VERSION,
-      groups: this._groups().map((group) => ({ ...group })),
-      tasks: this._tasks().map((task) => ({ ...task })),
-    };
-  }
-
-  importState(data: unknown): void {
-    const parsed = parseExport(data);
-    this._groups.set(parsed.groups);
-    this._tasks.set(parsed.tasks);
-  }
-
   moveGroup(groupId: string, desiredStartDay: number): void {
     const groupTasks = this._tasks().filter((task) => task.groupId === groupId);
     if (groupTasks.length === 0) return;
@@ -473,64 +454,6 @@ function mapApiGroups(apiGroups: ApiGroup[]): { groups: Group[]; tasks: Task[] }
       });
     }
   }
-  return { groups, tasks };
-}
-
-function parseExport(data: unknown): { groups: Group[]; tasks: Task[] } {
-  if (!data || typeof data !== 'object') {
-    throw new Error('Invalid file: expected a JSON object.');
-  }
-  const obj = data as Record<string, unknown>;
-  if (!Array.isArray(obj['groups']) || !Array.isArray(obj['tasks'])) {
-    throw new Error('Invalid file: missing "groups" or "tasks" arrays.');
-  }
-  const groups = obj['groups'].map((raw, index) => {
-    if (!raw || typeof raw !== 'object') {
-      throw new Error(`Invalid group at index ${index}.`);
-    }
-    const g = raw as Record<string, unknown>;
-    if (
-      typeof g['id'] !== 'string' ||
-      typeof g['name'] !== 'string' ||
-      typeof g['color'] !== 'string'
-    ) {
-      throw new Error(`Invalid group at index ${index}.`);
-    }
-    return {
-      id: g['id'],
-      name: g['name'],
-      color: g['color'],
-      collapsed: typeof g['collapsed'] === 'boolean' ? g['collapsed'] : false,
-    } satisfies Group;
-  });
-  const groupIds = new Set(groups.map((g) => g.id));
-  const tasks = obj['tasks'].map((raw, index) => {
-    if (!raw || typeof raw !== 'object') {
-      throw new Error(`Invalid task at index ${index}.`);
-    }
-    const t = raw as Record<string, unknown>;
-    if (
-      typeof t['id'] !== 'string' ||
-      typeof t['name'] !== 'string' ||
-      typeof t['color'] !== 'string' ||
-      typeof t['startDay'] !== 'number' ||
-      typeof t['duration'] !== 'number'
-    ) {
-      throw new Error(`Invalid task at index ${index}.`);
-    }
-    const groupId =
-      typeof t['groupId'] === 'string' && groupIds.has(t['groupId'])
-        ? (t['groupId'] as string)
-        : null;
-    return {
-      id: t['id'],
-      name: t['name'],
-      color: t['color'],
-      startDay: Math.max(0, Math.floor(t['startDay'])),
-      duration: Math.max(1, Math.floor(t['duration'])),
-      groupId,
-    } satisfies Task;
-  });
   return { groups, tasks };
 }
 

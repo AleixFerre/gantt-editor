@@ -6,10 +6,8 @@ import { GroupEdit } from './group-edit-dialog/group-edit-dialog.component.model
 import { GanttEmptyComponent } from './gantt-empty/gantt-empty.component';
 import { GroupBarComponent } from './group-bar/group-bar.component';
 import { GroupEditDialogComponent } from './group-edit-dialog/group-edit-dialog.component';
-import { GroupFormComponent } from './group-form/group-form.component';
 import { TaskBarComponent } from './task-bar/task-bar.component';
 import { TaskEditDialogComponent } from './task-edit-dialog/task-edit-dialog.component';
-import { TaskFormComponent } from './task-form/task-form.component';
 import { TaskService } from './task.service';
 import { TimelineHeaderComponent } from './timeline-header/timeline-header.component';
 import { ConfirmDialogComponent } from '../shared/confirm-dialog/confirm-dialog.component';
@@ -29,8 +27,6 @@ type DropTarget =
 @Component({
   selector: 'app-gantt',
   imports: [
-    TaskFormComponent,
-    GroupFormComponent,
     TimelineHeaderComponent,
     TaskBarComponent,
     GroupBarComponent,
@@ -359,35 +355,41 @@ export class GanttComponent implements OnInit {
     this.editingGroupId.set(null);
   }
 
-  protected exportJson(): void {
-    const data = this.taskService.exportState();
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `gantt-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+  protected readonly creatingGroup = signal(false);
+  protected readonly creatingTaskGroupId = signal<string | null>(null);
+
+  protected openCreateGroup(): void {
+    this.creatingGroup.set(true);
   }
 
-  protected async importJson(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const data: unknown = JSON.parse(text);
-      this.taskService.importState(data);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Could not read file.';
-      alert(`Import failed: ${message}`);
-    } finally {
-      input.value = '';
-    }
+  protected cancelCreateGroup(): void {
+    this.creatingGroup.set(false);
+  }
+
+  protected saveCreateGroup(updates: GroupEdit): void {
+    this.creatingGroup.set(false);
+    void this.taskService.addGroup({ name: updates.name, color: updates.color });
+  }
+
+  protected openCreateTaskInGroup(groupId: string): void {
+    this.creatingTaskGroupId.set(groupId);
+  }
+
+  protected cancelCreateTask(): void {
+    this.creatingTaskGroupId.set(null);
+  }
+
+  protected saveCreateTask(updates: TaskEdit): void {
+    const groupId = this.creatingTaskGroupId();
+    this.creatingTaskGroupId.set(null);
+    if (!groupId) return;
+    void this.taskService.addTask({
+      name: updates.name,
+      color: updates.color,
+      startDay: updates.startDay,
+      duration: updates.duration,
+      groupId,
+    });
   }
 
   protected trackRow(_index: number, row: GanttRow): string {

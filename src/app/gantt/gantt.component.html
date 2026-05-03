@@ -17,25 +17,6 @@
     </p>
   </header>
 
-  <div class="gantt__controls">
-    <app-group-form />
-    <app-task-form />
-    <div class="gantt__io">
-      <button type="button" class="gantt__io-btn" (click)="exportJson()">
-        Export JSON
-      </button>
-      <label class="gantt__io-btn gantt__io-btn--file">
-        <span>Import JSON</span>
-        <input
-          type="file"
-          accept="application/json,.json"
-          class="gantt__io-file"
-          (change)="importJson($event)"
-        />
-      </label>
-    </div>
-  </div>
-
   @if (rows().length === 0) {
     <p class="gantt__empty">No tasks yet — add one above to get started.</p>
   } @else {
@@ -100,6 +81,15 @@
                 {{ row.group.name }}
               </button>
               <span class="gantt__count">{{ row.taskCount }}</span>
+              <button
+                type="button"
+                class="gantt__add-task"
+                [attr.aria-label]="'Add task to ' + row.group.name"
+                title="Add task"
+                (click)="openCreateTaskInGroup(row.group.id)"
+              >
+                +
+              </button>
               <button
                 type="button"
                 class="gantt__remove"
@@ -187,6 +177,12 @@
           }
         }
       }
+      <div class="gantt__label gantt__label--add" [style.height.px]="rowHeight">
+        <button type="button" class="gantt__new-group" (click)="openCreateGroup()">
+          + New Group
+        </button>
+      </div>
+      <div class="gantt__row gantt__row--add" [style.height.px]="rowHeight"></div>
     </div>
     <div
       class="gantt__resize-handle"
@@ -200,15 +196,29 @@
   }
 
   <app-task-edit-dialog
+    [open]="!!editingTask()"
     [task]="editingTask()"
     [groups]="groups()"
     (saved)="saveEditTask($event)"
     (cancelled)="cancelEditTask()"
   />
+  <app-task-edit-dialog
+    [open]="!!creatingTaskGroupId()"
+    [groups]="groups()"
+    [lockedGroupId]="creatingTaskGroupId()"
+    (saved)="saveCreateTask($event)"
+    (cancelled)="cancelCreateTask()"
+  />
   <app-group-edit-dialog
+    [open]="!!editingGroup()"
     [group]="editingGroup()"
     (saved)="saveEditGroup($event)"
     (cancelled)="cancelEditGroup()"
+  />
+  <app-group-edit-dialog
+    [open]="creatingGroup()"
+    (saved)="saveCreateGroup($event)"
+    (cancelled)="cancelCreateGroup()"
   />
   <app-confirm-dialog
     [open]="!!pendingGroupRemoval()"

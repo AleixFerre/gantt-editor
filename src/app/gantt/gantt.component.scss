@@ -14,14 +14,74 @@
   box-sizing: border-box;
 }
 
-.gantt__header,
-.gantt__controls {
+.gantt__header {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 4px;
 }
 
-.gantt__header { gap: 4px; }
+.gantt__add-task {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #4b5563;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.12s ease, background-color 0.12s ease, color 0.12s ease;
+
+  &:hover,
+  &:focus-visible {
+    background: #e0e7ff;
+    color: #1d4ed8;
+    outline: none;
+  }
+}
+
+.gantt__label--group:hover .gantt__add-task,
+.gantt__label--group:focus-within .gantt__add-task {
+  opacity: 1;
+}
+
+.gantt__label--add {
+  border-right: 1px solid #d1d5db;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.gantt__row--add {
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.gantt__new-group {
+  appearance: none;
+  border: 1px dashed #9ca3af;
+  background: #fff;
+  color: #4b5563;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+
+  &:hover,
+  &:focus-visible {
+    border-color: #4f46e5;
+    color: #4f46e5;
+    outline: none;
+  }
+}
 
 .gantt__back {
   align-self: flex-start;
@@ -270,48 +330,9 @@
 
 .gantt__row--group { background-color: #f3f4f6; }
 
-.gantt__io {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.gantt__io-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 14px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  background: #fff;
-  color: #374151;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.gantt__io-btn:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
-}
-
-.gantt__io-file {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 .gantt__chevron:focus-visible,
 .gantt__remove:focus-visible,
-.gantt__label-name--editable:focus-visible,
-.gantt__io-btn:focus-visible,
-.gantt__io-btn--file:focus-within {
+.gantt__label-name--editable:focus-visible {
   outline: 2px solid #4f46e5;
   outline-offset: 1px;
 }

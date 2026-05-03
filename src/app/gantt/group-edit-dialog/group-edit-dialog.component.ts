@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  computed,
   effect,
   inject,
   input,
@@ -22,12 +23,16 @@ import { GroupEdit } from './group-edit-dialog.component.model';
 export class GroupEditDialogComponent {
   private readonly fb = inject(FormBuilder);
 
+  readonly open = input<boolean>(false);
   readonly group = input<Group | null>(null);
 
   readonly saved = output<GroupEdit>();
   readonly cancelled = output<void>();
 
   private readonly dialogRef = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
+
+  protected readonly title = computed(() => (this.group() ? 'Edit group' : 'New group'));
+  protected readonly submitLabel = computed(() => (this.group() ? 'Save' : 'Create'));
 
   protected readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(60)]],
@@ -36,10 +41,14 @@ export class GroupEditDialogComponent {
 
   constructor() {
     effect(() => {
+      const isOpen = this.open();
       const group = this.group();
       const dialog = this.dialogRef().nativeElement;
-      if (group) {
-        this.form.reset({ name: group.name, color: group.color });
+      if (isOpen) {
+        this.form.reset({
+          name: group?.name ?? '',
+          color: group?.color ?? '#6366f1',
+        });
         if (!dialog.open) dialog.showModal();
       } else if (dialog.open) {
         dialog.close();
