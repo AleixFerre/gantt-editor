@@ -45,6 +45,21 @@ const TASK_COLORS = [
         <span class="task-form__label">Duration (days)</span>
         <input type="number" min="1" formControlName="duration" />
       </label>
+      <label class="task-form__field task-form__field--color">
+        <span class="task-form__label">Color</span>
+        <span class="task-form__color">
+          <input type="color" formControlName="color" aria-label="Task color" />
+          <button
+            type="button"
+            class="task-form__randomize"
+            (click)="randomizeColor()"
+            aria-label="Pick a random color"
+            title="Random color"
+          >
+            🎲
+          </button>
+        </span>
+      </label>
       <button type="submit" class="task-form__submit" [disabled]="form.invalid">
         Add task
       </button>
@@ -92,6 +107,37 @@ const TASK_COLORS = [
       outline-offset: 1px;
       border-color: #4f46e5;
     }
+    .task-form__field--color {
+      min-width: 0;
+    }
+    .task-form__color {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .task-form__color input[type='color'] {
+      width: 44px;
+      height: 36px;
+      padding: 2px;
+      cursor: pointer;
+    }
+    .task-form__randomize {
+      width: 36px;
+      height: 36px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+    }
+    .task-form__randomize:hover {
+      background: #f3f4f6;
+    }
+    .task-form__randomize:focus-visible {
+      outline: 2px solid #4f46e5;
+      outline-offset: 1px;
+    }
     .task-form__submit {
       padding: 9px 18px;
       border: none;
@@ -126,24 +172,33 @@ export class TaskFormComponent {
     groupId: this.fb.control<string | null>(null),
     startDay: [0, [Validators.required, Validators.min(0)]],
     duration: [3, [Validators.required, Validators.min(1)]],
+    color: [pickRandomColor(), [Validators.required]],
   });
 
   protected submit(): void {
     if (this.form.invalid) return;
     const value = this.form.getRawValue();
-    const color = TASK_COLORS[Math.floor(Math.random() * TASK_COLORS.length)];
     this.taskService.addTask({
       name: value.name.trim(),
       groupId: value.groupId,
       startDay: value.startDay,
       duration: value.duration,
-      color,
+      color: value.color,
     });
     this.form.reset({
       name: '',
       groupId: value.groupId,
       startDay: value.startDay,
       duration: value.duration,
+      color: pickRandomColor(),
     });
   }
+
+  protected randomizeColor(): void {
+    this.form.controls.color.setValue(pickRandomColor());
+  }
+}
+
+function pickRandomColor(): string {
+  return TASK_COLORS[Math.floor(Math.random() * TASK_COLORS.length)];
 }

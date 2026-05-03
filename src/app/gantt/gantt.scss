@@ -165,6 +165,28 @@
   text-overflow: ellipsis;
 }
 
+.gantt__label-name--editable {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.gantt__label-name--editable:hover {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.gantt__label-name--editable:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
 .gantt__count {
   font-size: 11px;
   font-weight: 600;
@@ -174,6 +196,36 @@
   border-radius: 999px;
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
+}
+
+.gantt__drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  font-size: 11px;
+  color: #9ca3af;
+  cursor: grab;
+  user-select: none;
+  letter-spacing: -2px;
+  flex-shrink: 0;
+}
+
+.gantt__label--dragging {
+  opacity: 0.4;
+}
+
+.gantt__label--drop-above {
+  box-shadow: inset 0 2px 0 0 #4f46e5;
+}
+
+.gantt__label--drop-below {
+  box-shadow: inset 0 -2px 0 0 #4f46e5;
+}
+
+.gantt__label--drop-into {
+  box-shadow: inset 0 0 0 2px #4f46e5;
+  background: #eef2ff;
 }
 
 .gantt__remove {
@@ -212,4 +264,47 @@
 
 .gantt__row--group {
   background-color: #f3f4f6;
+}
+
+.gantt__io {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gantt__io-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gantt__io-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.gantt__io-btn:focus-visible,
+.gantt__io-btn--file:focus-within {
+  outline: 2px solid #4f46e5;
+  outline-offset: 1px;
+}
+
+.gantt__io-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

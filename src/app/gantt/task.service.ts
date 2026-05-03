@@ -3,6 +3,13 @@ import { GanttRow, Group, GroupSpan, Task } from './task.model';
 
 const MIN_VISIBLE_DAYS = 30;
 const TRAILING_PADDING_DAYS = 5;
+const EXPORT_VERSION = 1;
+
+export interface GanttExport {
+  version: number;
+  groups: Group[];
+  tasks: Task[];
+}
 
 @Injectable({ providedIn: 'root' })
 export class TaskService {
@@ -81,6 +88,62 @@ export class TaskService {
     );
   }
 
+  placeTaskRelativeTo(
+    draggedId: string,
+    targetId: string,
+    position: 'above' | 'below',
+  ): void {
+    if (draggedId === targetId) return;
+    this._tasks.update((tasks) => {
+      const dragged = tasks.find((t) => t.id === draggedId);
+      const target = tasks.find((t) => t.id === targetId);
+      if (!dragged || !target) return tasks;
+      const without = tasks.filter((t) => t.id !== draggedId);
+      const targetIdx = without.findIndex((t) => t.id === targetId);
+      if (targetIdx === -1) return tasks;
+      const insertAt = position === 'above' ? targetIdx : targetIdx + 1;
+      const updated: Task = { ...dragged, groupId: target.groupId };
+      const next = [...without];
+      next.splice(insertAt, 0, updated);
+      return next;
+    });
+  }
+
+  placeTaskInGroup(draggedId: string, groupId: string | null): void {
+    this._tasks.update((tasks) => {
+      const dragged = tasks.find((t) => t.id === draggedId);
+      if (!dragged) return tasks;
+      if (groupId !== null && !this._groups().some((g) => g.id === groupId)) {
+        return tasks;
+      }
+      const without = tasks.filter((t) => t.id !== draggedId);
+      const updated: Task = { ...dragged, groupId };
+      const firstSibling = without.findIndex((t) => t.groupId === groupId);
+      const next = [...without];
+      if (firstSibling === -1) {
+        next.push(updated);
+      } else {
+        next.splice(firstSibling, 0, updated);
+      }
+      return next;
+    });
+  }
+
+  updateTask(id: string, updates: Partial<Omit<Task, 'id'>>): void {
+    this._tasks.update((tasks) =>
+      tasks.map((task) => {
+        if (task.id !== id) return task;
+        const next: Task = { ...task, ...updates };
+        next.startDay = Math.max(0, Math.floor(next.startDay));
+        next.duration = Math.max(1, Math.floor(next.duration));
+        if (next.groupId !== null && !this._groups().some((g) => g.id === next.groupId)) {
+          next.groupId = null;
+        }
+        return next;
+      }),
+    );
+  }
+
   addGroup(group: Omit<Group, 'id' | 'collapsed'>): string {
     const id = `g-${crypto.randomUUID()}`;
     this._groups.update((groups) => [...groups, { ...group, id, collapsed: false }]);
@@ -102,6 +165,20 @@ export class TaskService {
     );
   }
 
+  exportState(): GanttExport {
+    return {
+      version: EXPORT_VERSION,
+      groups: this._groups().map((group) => ({ ...group })),
+      tasks: this._tasks().map((task) => ({ ...task })),
+    };
+  }
+
+  importState(data: unknown): void {
+    const parsed = parseExport(data);
+    this._groups.set(parsed.groups);
+    this._tasks.set(parsed.tasks);
+  }
+
   moveGroup(groupId: string, desiredStartDay: number): void {
     const groupTasks = this._tasks().filter((task) => task.groupId === groupId);
     if (groupTasks.length === 0) return;
@@ -117,6 +194,64 @@ export class TaskService {
       ),
     );
   }
+}
+
+function parseExport(data: unknown): { groups: Group[]; tasks: Task[] } {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid file: expected a JSON object.');
+  }
+  const obj = data as Record<string, unknown>;
+  if (!Array.isArray(obj['groups']) || !Array.isArray(obj['tasks'])) {
+    throw new Error('Invalid file: missing "groups" or "tasks" arrays.');
+  }
+  const groups = obj['groups'].map((raw, index) => {
+    if (!raw || typeof raw !== 'object') {
+      throw new Error(`Invalid group at index ${index}.`);
+    }
+    const g = raw as Record<string, unknown>;
+    if (
+      typeof g['id'] !== 'string' ||
+      typeof g['name'] !== 'string' ||
+      typeof g['color'] !== 'string'
+    ) {
+      throw new Error(`Invalid group at index ${index}.`);
+    }
+    return {
+      id: g['id'],
+      name: g['name'],
+      color: g['color'],
+      collapsed: typeof g['collapsed'] === 'boolean' ? g['collapsed'] : false,
+    } satisfies Group;
+  });
+  const groupIds = new Set(groups.map((g) => g.id));
+  const tasks = obj['tasks'].map((raw, index) => {
+    if (!raw || typeof raw !== 'object') {
+      throw new Error(`Invalid task at index ${index}.`);
+    }
+    const t = raw as Record<string, unknown>;
+    if (
+      typeof t['id'] !== 'string' ||
+      typeof t['name'] !== 'string' ||
+      typeof t['color'] !== 'string' ||
+      typeof t['startDay'] !== 'number' ||
+      typeof t['duration'] !== 'number'
+    ) {
+      throw new Error(`Invalid task at index ${index}.`);
+    }
+    const groupId =
+      typeof t['groupId'] === 'string' && groupIds.has(t['groupId'])
+        ? (t['groupId'] as string)
+        : null;
+    return {
+      id: t['id'],
+      name: t['name'],
+      color: t['color'],
+      startDay: Math.max(0, Math.floor(t['startDay'])),
+      duration: Math.max(1, Math.floor(t['duration'])),
+      groupId,
+    } satisfies Task;
+  });
+  return { groups, tasks };
 }
 
 function computeSpan(tasks: Task[]): GroupSpan | null {

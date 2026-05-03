@@ -10,6 +10,20 @@
   <div class="gantt__controls">
     <app-task-form />
     <app-group-form />
+    <div class="gantt__io">
+      <button type="button" class="gantt__io-btn" (click)="exportJson()">
+        Export JSON
+      </button>
+      <label class="gantt__io-btn gantt__io-btn--file">
+        <span>Import JSON</span>
+        <input
+          type="file"
+          accept="application/json,.json"
+          class="gantt__io-file"
+          (change)="importJson($event)"
+        />
+      </label>
+    </div>
   </div>
 
   @if (rows().length === 0) {
@@ -30,7 +44,10 @@
           @case ('group') {
             <div
               class="gantt__label gantt__label--group"
+              [class.gantt__label--drop-into]="isGroupDropTarget(row.group.id)"
               [style.height.px]="rowHeight"
+              (dragover)="onGroupDragOver($event, row.group.id)"
+              (drop)="onGroupDrop($event, row.group.id)"
             >
               <button
                 type="button"
@@ -81,15 +98,35 @@
             <div
               class="gantt__label"
               [class.gantt__label--child]="row.inGroup"
+              [class.gantt__label--dragging]="draggingTaskId() === row.task.id"
+              [class.gantt__label--drop-above]="isTaskDropAbove(row.task.id)"
+              [class.gantt__label--drop-below]="isTaskDropBelow(row.task.id)"
               [style.height.px]="rowHeight"
+              draggable="true"
+              (dragstart)="onTaskDragStart($event, row.task.id)"
+              (dragend)="onTaskDragEnd()"
+              (dragover)="onTaskDragOver($event, row.task.id)"
+              (drop)="onTaskDrop($event, row.task.id)"
             >
+              <span
+                class="gantt__drag-handle"
+                aria-hidden="true"
+                title="Drag to reorder"
+              >
+                ⋮⋮
+              </span>
               <span
                 class="gantt__swatch"
                 [style.background-color]="row.task.color"
               ></span>
-              <span class="gantt__label-name" [title]="row.task.name">
+              <button
+                type="button"
+                class="gantt__label-name gantt__label-name--editable"
+                [title]="row.task.name + ' (click to edit)'"
+                (click)="startEditTask(row.task.id)"
+              >
                 {{ row.task.name }}
-              </span>
+              </button>
               <button
                 type="button"
                 class="gantt__remove"
@@ -113,4 +150,11 @@
       }
     </div>
   }
+
+  <app-task-edit-dialog
+    [task]="editingTask()"
+    [groups]="groups()"
+    (saved)="saveEditTask($event)"
+    (cancelled)="cancelEditTask()"
+  />
 </section>

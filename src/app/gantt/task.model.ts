@@ -21,4 +21,8 @@ export interface GroupSpan {
 
 export type GanttRow =
   | { readonly kind: 'group'; readonly group: Group; readonly span: GroupSpan | null; readonly taskCount: number }
-  | { readonly kind: 'task'; readonly task: Task; readonly inGroup: boolean };
+  | {
+      readonly kind: 'task';
+      readonly task: Task;
+      readonly inGroup: boolean;
+    };
