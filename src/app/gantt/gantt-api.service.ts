@@ -26,6 +26,16 @@ export class GanttApiService {
     return firstValueFrom(this.http.post<ApiBoard>(`${this.base}/boards`, { name }));
   }
 
+  updateBoard(id: number, name: string): Promise<ApiBoard> {
+    return firstValueFrom(
+      this.http.patch<ApiBoard>(`${this.base}/boards/${id}`, { name }),
+    );
+  }
+
+  deleteBoard(id: number): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`${this.base}/boards/${id}`));
+  }
+
   listGroups(boardId: number): Promise<ApiGroup[]> {
     const params = new HttpParams().set('board', String(boardId));
     return firstValueFrom(

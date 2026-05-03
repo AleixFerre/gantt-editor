@@ -173,6 +173,7 @@
 }
 
 .boards__card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -194,6 +195,54 @@
 
   &:active {
     transform: translateY(1px);
+  }
+
+  &:hover .boards__card-actions,
+  &:focus-within .boards__card-actions {
+    opacity: 1;
+  }
+}
+
+.boards__card-actions {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.boards__icon-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.85);
+  color: #4b5563;
+  width: 26px;
+  height: 26px;
+  border-radius: 0.4rem;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover,
+  &:focus-visible {
+    border-color: #d1d5db;
+    background: #f3f4f6;
+    color: #1f2937;
+    outline: none;
+  }
+
+  &--danger {
+    &:hover,
+    &:focus-visible {
+      border-color: #fecaca;
+      background: #fee2e2;
+      color: #b91c1c;
+    }
   }
 }
 

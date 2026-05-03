@@ -19,9 +19,39 @@
     <ul class="boards__list">
       @for (board of boards(); track board.id) {
         <li class="boards__item">
-          <button type="button" class="boards__card" (click)="open(board)">
+          <button
+            type="button"
+            class="boards__card"
+            [class.boards__card--pending]="isRemoving(board.id)"
+            [attr.aria-busy]="isRemoving(board.id) ? 'true' : null"
+            [disabled]="isRemoving(board.id)"
+            (click)="open(board)"
+          >
             <span class="boards__card-name">{{ board.name }}</span>
             <span class="boards__card-id">#{{ board.id }}</span>
+            @if (isRemoving(board.id)) {
+              <span class="boards__card-shimmer" aria-hidden="true"></span>
+            }
+            <span class="boards__card-actions">
+              <button
+                type="button"
+                class="boards__icon-btn"
+                [attr.aria-label]="'Rename ' + board.name"
+                title="Rename"
+                (click)="openEdit($event, board)"
+              >
+                ✎
+              </button>
+              <button
+                type="button"
+                class="boards__icon-btn boards__icon-btn--danger"
+                [attr.aria-label]="'Delete ' + board.name"
+                title="Delete"
+                (click)="openDelete($event, board)"
+              >
+                ×
+              </button>
+            </span>
           </button>
         </li>
       }
@@ -36,29 +66,40 @@
     </ul>
   }
 
-  <dialog #dialog class="boards__dialog" (close)="cancelCreate()">
-    <form [formGroup]="form" (ngSubmit)="submitCreate()" class="boards__dialog-form" novalidate>
-      <h2 class="boards__dialog-title">New board</h2>
+  <dialog #dialog class="boards__dialog" (close)="closeDialog()">
+    <form [formGroup]="form" (ngSubmit)="submitDialog()" class="boards__dialog-form" novalidate>
+      <h2 class="boards__dialog-title">{{ dialogTitle() }}</h2>
 
       <label class="boards__dialog-field">
         <span class="boards__dialog-label">Name</span>
         <input type="text" formControlName="name" autocomplete="off" autofocus />
       </label>
 
-      @if (creatingError(); as err) {
+      @if (dialogError(); as err) {
         <p class="boards__dialog-error" role="alert">{{ err }}</p>
       }
 
       <div class="boards__dialog-actions">
-        <button type="button" class="boards__dialog-btn" (click)="cancelCreate()">Cancel</button>
+        <button type="button" class="boards__dialog-btn" (click)="closeDialog()">Cancel</button>
         <button
           type="submit"
           class="boards__dialog-btn boards__dialog-btn--primary"
           [disabled]="form.invalid"
         >
-          Create
+          {{ dialogSubmitLabel() }}
         </button>
       </div>
     </form>
   </dialog>
+
+  <app-confirm-dialog
+    [open]="!!pendingDelete()"
+    title="Delete board"
+    [message]="pendingDeleteMessage()"
+    confirmLabel="Delete"
+    cancelLabel="Cancel"
+    variant="danger"
+    (confirmed)="confirmDelete()"
+    (cancelled)="cancelDelete()"
+  />
 </section>
