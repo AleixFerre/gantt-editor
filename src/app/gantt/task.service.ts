@@ -4,6 +4,8 @@ import { ApiGroup, ReorderBody } from './gantt-api.service.model';
 import { MIN_VISIBLE_DAYS, TRAILING_PADDING_DAYS } from './task.service.model';
 import { ToastService } from '../shared/toast.service';
 import { GanttApiService } from './gantt-api.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { BoardEvent } from '../realtime/realtime.events';
 
 export type TaskBoundsChange = 'move' | 'resize';
 
@@ -24,12 +26,23 @@ const parseTaskId = (key: string): number | null => {
 export class TaskService {
   private readonly api = inject(GanttApiService);
   private readonly toast = inject(ToastService);
+  private readonly realtime = inject(RealtimeService);
 
   private readonly _groups = signal<Group[]>([]);
   private readonly _tasks = signal<Task[]>([]);
   private readonly _loaded = signal(false);
   private readonly _loadError = signal<string | null>(null);
   private boardId: number | null = null;
+
+  constructor() {
+    this.realtime.boardEvents$.subscribe((event) => this.applyBoardEvent(event));
+    this.realtime.resync$.subscribe((info) => {
+      if (info.scope !== 'board') return;
+      if (this.boardId === null) return;
+      if (info.boardId !== undefined && info.boardId !== this.boardId) return;
+      void this.load(this.boardId);
+    });
+  }
 
   readonly tasks = this._tasks.asReadonly();
   readonly groups = this._groups.asReadonly();
@@ -72,6 +85,12 @@ export class TaskService {
   });
 
   async load(boardId: number): Promise<void> {
+    if (this.boardId !== null && this.boardId !== boardId) {
+      this.realtime.unsubscribeBoard(this.boardId);
+    }
+    if (this.boardId !== boardId) {
+      this.realtime.subscribeBoard(boardId);
+    }
     this.boardId = boardId;
     this._loaded.set(false);
     try {
@@ -170,6 +189,13 @@ export class TaskService {
 
   removeTask(id: string): void {
     this._tasks.update((tasks) => tasks.filter((task) => task.id !== id));
+  }
+
+  detachBoard(): void {
+    if (this.boardId !== null) {
+      this.realtime.unsubscribeBoard(this.boardId);
+      this.boardId = null;
+    }
   }
 
   updateStartDay(id: string, startDay: number): void {
@@ -429,6 +455,80 @@ export class TaskService {
         task.groupId === groupId ? { ...task, startDay: task.startDay + delta } : task,
       ),
     );
+  }
+
+  private applyBoardEvent(event: BoardEvent): void {
+    if (this.boardId === null) return;
+    switch (event.type) {
+      case 'group.created': {
+        const id = groupKey(event.group.id);
+        if (this._groups().some((g) => g.id === id)) return;
+        this._groups.update((groups) => [
+          ...groups,
+          { id, name: event.group.name, color: event.group.color, collapsed: false },
+        ]);
+        return;
+      }
+      case 'group.updated': {
+        const id = groupKey(event.id);
+        this._groups.update((groups) =>
+          groups.map((group) => {
+            if (group.id !== id) return group;
+            const next: Group = { ...group };
+            if (event.changes.name !== undefined) next.name = event.changes.name;
+            if (event.changes.color !== undefined) next.color = event.changes.color;
+            return next;
+          }),
+        );
+        return;
+      }
+      case 'group.deleted': {
+        const id = groupKey(event.id);
+        this._groups.update((groups) => groups.filter((g) => g.id !== id));
+        this._tasks.update((tasks) => tasks.filter((t) => t.groupId !== id));
+        return;
+      }
+      case 'task.created': {
+        if (event.task.group == null) return;
+        const id = taskKey(event.task.id);
+        if (this._tasks().some((t) => t.id === id)) return;
+        this._tasks.update((tasks) => [
+          ...tasks,
+          {
+            id,
+            name: event.task.name,
+            color: event.task.color,
+            startDay: event.task.start,
+            duration: event.task.duration,
+            groupId: groupKey(event.task.group as number),
+          },
+        ]);
+        return;
+      }
+      case 'task.updated': {
+        const id = taskKey(event.id);
+        this._tasks.update((tasks) =>
+          tasks.map((task) => {
+            if (task.id !== id) return task;
+            const next: Task = { ...task };
+            if (event.changes.name !== undefined) next.name = event.changes.name;
+            if (event.changes.color !== undefined) next.color = event.changes.color;
+            if (event.changes.start !== undefined) next.startDay = event.changes.start;
+            if (event.changes.duration !== undefined) next.duration = event.changes.duration;
+            if (event.changes.group !== undefined) {
+              next.groupId = event.changes.group === null ? null : groupKey(event.changes.group);
+            }
+            return next;
+          }),
+        );
+        return;
+      }
+      case 'groups.reordered':
+      case 'tasks.reordered': {
+        if (this.boardId !== null) void this.load(this.boardId);
+        return;
+      }
+    }
   }
 }
 

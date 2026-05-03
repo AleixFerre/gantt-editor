@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DAY_WIDTH_PX, GanttRow, Group, ROW_HEIGHT_PX, Task } from './gantt.component.model';
 import { TaskEdit } from './task-edit-dialog/task-edit-dialog.component.model';
@@ -39,7 +39,7 @@ type DropTarget =
   styleUrl: './gantt.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GanttComponent implements OnInit {
+export class GanttComponent implements OnInit, OnDestroy {
   private readonly taskService = inject(TaskService);
 
   protected readonly dayWidth = DAY_WIDTH_PX;
@@ -122,6 +122,10 @@ export class GanttComponent implements OnInit {
       return;
     }
     void this.taskService.load(boardId);
+  }
+
+  ngOnDestroy(): void {
+    this.taskService.detachBoard();
   }
 
   protected goToBoards(): void {

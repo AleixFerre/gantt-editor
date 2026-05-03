@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   OnInit,
   computed,
@@ -9,12 +10,14 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { ConfirmDialogComponent } from '../shared/confirm-dialog/confirm-dialog.component';
 import { GanttApiService } from '../gantt/gantt-api.service';
 import { ApiBoard } from '../gantt/gantt-api.service.model';
+import { RealtimeService } from '../realtime/realtime.service';
 
 @Component({
   selector: 'app-boards-list',
@@ -28,6 +31,8 @@ export class BoardsListComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
+  private readonly realtime = inject(RealtimeService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly boards = signal<ApiBoard[]>([]);
   protected readonly loaded = signal(false);
@@ -70,6 +75,51 @@ export class BoardsListComponent implements OnInit {
         dialog.close();
       }
     });
+
+    this.realtime.ensureConnected();
+    this.realtime.userBoardsEvents$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((event) => this.applyUserBoardsEvent(event));
+    this.realtime.resync$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((info) => {
+        if (info.scope !== 'userBoards') return;
+        if (!this.loaded()) return;
+        void this.refreshBoards();
+      });
+  }
+
+  private async refreshBoards(): Promise<void> {
+    try {
+      const boards = await this.api.listBoards();
+      this.boards.set(boards);
+      this.error.set(null);
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to load boards.');
+    }
+  }
+
+  private applyUserBoardsEvent(
+    event:
+      | { type: 'board.created'; clientId: string | null; board: ApiBoard }
+      | { type: 'board.updated'; clientId: string | null; id: number; name: string }
+      | { type: 'board.deleted'; clientId: string | null; id: number },
+  ): void {
+    switch (event.type) {
+      case 'board.created':
+        this.boards.update((list) =>
+          list.some((b) => b.id === event.board.id) ? list : [...list, event.board],
+        );
+        return;
+      case 'board.updated':
+        this.boards.update((list) =>
+          list.map((b) => (b.id === event.id ? { ...b, name: event.name } : b)),
+        );
+        return;
+      case 'board.deleted':
+        this.boards.update((list) => list.filter((b) => b.id !== event.id));
+        return;
+    }
   }
 
   async ngOnInit(): Promise<void> {
