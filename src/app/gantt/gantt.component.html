@@ -210,5 +210,15 @@
     (saved)="saveEditGroup($event)"
     (cancelled)="cancelEditGroup()"
   />
+  <app-confirm-dialog
+    [open]="!!pendingGroupRemoval()"
+    title="Delete group"
+    [message]="pendingGroupRemovalMessage()"
+    confirmLabel="Delete"
+    cancelLabel="Cancel"
+    variant="danger"
+    (confirmed)="confirmGroupRemoval()"
+    (cancelled)="cancelGroupRemoval()"
+  />
 </section>
 }

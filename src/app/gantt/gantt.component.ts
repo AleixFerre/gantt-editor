@@ -12,6 +12,7 @@ import { TaskEditDialogComponent } from './task-edit-dialog/task-edit-dialog.com
 import { TaskFormComponent } from './task-form/task-form.component';
 import { TaskService } from './task.service';
 import { TimelineHeaderComponent } from './timeline-header/timeline-header.component';
+import { ConfirmDialogComponent } from '../shared/confirm-dialog/confirm-dialog.component';
 
 type DragSource =
   | { readonly kind: 'task'; readonly id: string }
@@ -36,6 +37,7 @@ type DropTarget =
     TaskEditDialogComponent,
     GroupEditDialogComponent,
     GanttEmptyComponent,
+    ConfirmDialogComponent,
   ],
   templateUrl: './gantt.component.html',
   styleUrl: './gantt.component.scss',
@@ -284,8 +286,36 @@ export class GanttComponent implements OnInit {
     this.taskService.moveGroup(id, startDay);
   }
 
+  protected readonly pendingGroupRemovalId = signal<string | null>(null);
+  protected readonly pendingGroupRemoval = computed<Group | null>(() => {
+    const id = this.pendingGroupRemovalId();
+    if (!id) return null;
+    return this.taskService.groups().find((g) => g.id === id) ?? null;
+  });
+  protected readonly pendingGroupRemovalMessage = computed<string>(() => {
+    const group = this.pendingGroupRemoval();
+    if (!group) return '';
+    const taskCount = this.taskService.tasks().filter((t) => t.groupId === group.id).length;
+    if (taskCount === 0) {
+      return `Delete the group “${group.name}”?`;
+    }
+    const noun = taskCount === 1 ? 'task' : 'tasks';
+    return `Delete the group “${group.name}” and its ${taskCount} ${noun}? This cannot be undone.`;
+  });
+
   protected onGroupRemove(id: string): void {
-    this.taskService.removeGroup(id);
+    this.pendingGroupRemovalId.set(id);
+  }
+
+  protected confirmGroupRemoval(): void {
+    const id = this.pendingGroupRemovalId();
+    if (!id) return;
+    this.pendingGroupRemovalId.set(null);
+    void this.taskService.removeGroup(id);
+  }
+
+  protected cancelGroupRemoval(): void {
+    this.pendingGroupRemovalId.set(null);
   }
 
   protected onGroupToggle(id: string): void {
@@ -303,7 +333,7 @@ export class GanttComponent implements OnInit {
   protected saveEditTask(updates: TaskEdit): void {
     const id = this.editingTaskId();
     if (!id) return;
-    this.taskService.updateTask(id, updates);
+    void this.taskService.updateTask(id, updates);
     this.editingTaskId.set(null);
   }
 

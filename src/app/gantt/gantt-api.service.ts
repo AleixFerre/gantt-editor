@@ -39,6 +39,10 @@ export class GanttApiService {
     );
   }
 
+  deleteGroup(id: number): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`${this.base}/groups/${id}`));
+  }
+
   reorderGroups(body: ReorderBody): Promise<void> {
     return firstValueFrom(
       this.http.patch<void>(`${this.base}/groups/reorder`, body),

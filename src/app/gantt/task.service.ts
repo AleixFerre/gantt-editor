@@ -339,19 +339,42 @@ export class TaskService {
     }
   }
 
-  updateTask(id: string, updates: Partial<Omit<Task, 'id'>>): void {
+  async updateTask(id: string, updates: Partial<Omit<Task, 'id'>>): Promise<void> {
+    const apiId = parseTaskId(id);
+    if (apiId === null) return;
+    const before = this._tasks().find((t) => t.id === id);
+    if (!before) return;
+    let next: Task | null = null;
     this._tasks.update((tasks) =>
       tasks.map((task) => {
         if (task.id !== id) return task;
-        const next: Task = { ...task, ...updates };
-        next.startDay = Math.max(0, Math.floor(next.startDay));
-        next.duration = Math.max(1, Math.floor(next.duration));
-        if (next.groupId !== null && !this._groups().some((g) => g.id === next.groupId)) {
-          next.groupId = null;
+        const merged: Task = { ...task, ...updates };
+        merged.startDay = Math.max(0, Math.floor(merged.startDay));
+        merged.duration = Math.max(1, Math.floor(merged.duration));
+        if (merged.groupId !== null && !this._groups().some((g) => g.id === merged.groupId)) {
+          merged.groupId = null;
         }
-        return next;
+        next = merged;
+        return merged;
       }),
     );
+    if (!next) return;
+    const after = next as Task;
+    const body: Record<string, unknown> = {};
+    if (after.name !== before.name) body['name'] = after.name;
+    if (after.color !== before.color) body['color'] = after.color;
+    if (after.startDay !== before.startDay) body['start'] = after.startDay;
+    if (after.duration !== before.duration) body['duration'] = after.duration;
+    if (after.groupId !== before.groupId) {
+      body['group'] = after.groupId ? parseGroupId(after.groupId) : null;
+    }
+    if (Object.keys(body).length === 0) return;
+    try {
+      await this.api.updateTask(apiId, body);
+      this.toast.success(`Task “${after.name}” updated`);
+    } catch (error) {
+      this.toast.error(`Could not update task: ${describe(error)}`);
+    }
   }
 
   async updateGroup(id: string, updates: { name: string; color: string }): Promise<void> {
@@ -375,11 +398,18 @@ export class TaskService {
     }
   }
 
-  removeGroup(id: string): void {
-    this._groups.update((groups) => groups.filter((group) => group.id !== id));
-    this._tasks.update((tasks) =>
-      tasks.map((task) => (task.groupId === id ? { ...task, groupId: null } : task)),
-    );
+  async removeGroup(id: string): Promise<void> {
+    const group = this._groups().find((g) => g.id === id);
+    const apiId = parseGroupId(id);
+    if (apiId === null) return;
+    try {
+      await this.api.deleteGroup(apiId);
+      this._groups.update((groups) => groups.filter((g) => g.id !== id));
+      this._tasks.update((tasks) => tasks.filter((task) => task.groupId !== id));
+      this.toast.success(group ? `Group “${group.name}” deleted` : 'Group deleted');
+    } catch (error) {
+      this.toast.error(`Could not delete group: ${describe(error)}`);
+    }
   }
 
   toggleGroup(id: string): void {

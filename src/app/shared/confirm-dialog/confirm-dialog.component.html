@@ -1,0 +1,22 @@
+<dialog #dialog class="confirm-dialog" (close)="cancel()">
+  <div class="confirm-dialog__body">
+    <h2 class="confirm-dialog__title">{{ title() }}</h2>
+    @if (message()) {
+      <p class="confirm-dialog__message">{{ message() }}</p>
+    }
+    <div class="confirm-dialog__actions">
+      <button type="button" class="confirm-dialog__btn" (click)="cancel()">
+        {{ cancelLabel() }}
+      </button>
+      <button
+        type="button"
+        class="confirm-dialog__btn"
+        [class.confirm-dialog__btn--primary]="variant() === 'default'"
+        [class.confirm-dialog__btn--danger]="variant() === 'danger'"
+        (click)="confirm()"
+      >
+        {{ confirmLabel() }}
+      </button>
+    </div>
+  </div>
+</dialog>
