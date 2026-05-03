@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { AuthService } from '../auth/auth.service';
 import { ConfirmDialogComponent } from '../shared/confirm-dialog/confirm-dialog.component';
 import { GanttApiService } from '../gantt/gantt-api.service';
 import { ApiBoard } from '../gantt/gantt-api.service.model';
@@ -24,6 +25,7 @@ import { ApiBoard } from '../gantt/gantt-api.service.model';
 })
 export class BoardsListComponent implements OnInit {
   private readonly api = inject(GanttApiService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
 
@@ -94,6 +96,15 @@ export class BoardsListComponent implements OnInit {
   protected openCreate(): void {
     this.editingBoard.set(null);
     this.creating.set(true);
+  }
+
+  protected async logout(): Promise<void> {
+    try {
+      await this.auth.logout();
+    } catch {
+      // ignore — clear session locally regardless
+    }
+    void this.router.navigate(['/']);
   }
 
   protected openEdit(event: Event, board: ApiBoard): void {

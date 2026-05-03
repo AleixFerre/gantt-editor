@@ -4,9 +4,14 @@
       <h1 class="boards__title">Your boards</h1>
       <p class="boards__subtitle">Pick a board to open its Gantt.</p>
     </div>
-    <button type="button" class="boards__new-btn" (click)="openCreate()">
-      + New board
-    </button>
+    <div class="boards__header-actions">
+      <button type="button" class="boards__new-btn" (click)="openCreate()">
+        + New board
+      </button>
+      <button type="button" class="boards__logout-btn" (click)="logout()">
+        Log out
+      </button>
+    </div>
   </header>
 
   @if (!loaded()) {

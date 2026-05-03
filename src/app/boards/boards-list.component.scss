@@ -21,6 +21,13 @@
   gap: 0.25rem;
 }
 
+.boards__header-actions {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .boards__new-btn {
   appearance: none;
   border: 1px solid #2563eb;
@@ -36,6 +43,25 @@
   &:focus-visible {
     background: #1d4ed8;
     border-color: #1d4ed8;
+    outline: none;
+  }
+}
+
+.boards__logout-btn {
+  appearance: none;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  padding: 0.5rem 0.9rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    border-color: #9ca3af;
+    color: #1f2937;
     outline: none;
   }
 }
