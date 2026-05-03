@@ -122,6 +122,7 @@
               [class.gantt__label--dragging]="isTaskDragging(row.task.id)"
               [class.gantt__label--drop-above]="isTaskDropAbove(row.task.id)"
               [class.gantt__label--drop-below]="isTaskDropBelow(row.task.id)"
+              [class.gantt__label--hidden]="isAnyGroupDragging()"
               [style.height.px]="rowHeight"
               draggable="true"
               (dragstart)="onTaskDragStart($event, row.task.id)"
@@ -157,7 +158,11 @@
                 ×
               </button>
             </div>
-            <div class="gantt__row" [style.height.px]="rowHeight">
+            <div
+              class="gantt__row"
+              [class.gantt__row--hidden]="isAnyGroupDragging()"
+              [style.height.px]="rowHeight"
+            >
               <app-task-bar
                 [task]="row.task"
                 [dayWidth]="dayWidth"

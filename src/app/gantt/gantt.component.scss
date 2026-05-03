@@ -107,6 +107,8 @@
 
 .gantt__label--child { padding-left: 28px; }
 .gantt__label--dragging { opacity: 0.4; }
+.gantt__label--hidden,
+.gantt__row--hidden { display: none; }
 .gantt__label--drop-above { box-shadow: inset 0 2px 0 0 #4f46e5; }
 .gantt__label--drop-below { box-shadow: inset 0 -2px 0 0 #4f46e5; }
 .gantt__label--drop-into {

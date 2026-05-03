@@ -197,6 +197,11 @@ export class GanttComponent implements OnInit {
     return !!drag && drag.kind === 'group' && drag.id === id;
   }
 
+  protected isAnyGroupDragging(): boolean {
+    const drag = this.dragging();
+    return !!drag && drag.kind === 'group';
+  }
+
   protected onGroupMove(id: string, startDay: number): void {
     this.taskService.moveGroup(id, startDay);
   }
